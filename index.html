@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0A0A0A">
+    <meta name="description" content="FinanzApp - Tu asistente de finanzas personales con IA">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <title>FinanzApp - Finanzas Personales</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23CAFD0A' rx='20' width='100' height='100'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='%230A0A0A' font-family='Inter'>$</text></svg>">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/transactions.css">
+    <link rel="stylesheet" href="css/ui.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+
+<body>
+    <div id="auth-overlay" class="modal-overlay modal-centered active"
+        style="z-index: 9999; background: var(--bg-primary);">
+        <div class="modal"
+            style="max-width: 400px; transform: translateY(0); border-radius: var(--border-radius-xl); padding: var(--spacing-xl);">
+            <div class="text-center mb-lg">
+                <div class="header-logo" style="margin: 0 auto 15px; width: 60px; height: 60px; font-size: 2rem;">$
+                </div>
+                <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--accent-primary);">FinanzApp</h2>
+                <p class="text-muted">Gestiona tus finanzas en la nube</p>
+            </div>
+
+            <form id="auth-form" onsubmit="handleAuth(event)">
+                <div class="form-group">
+                    <label class="form-label">Correo Electrónico</label>
+                    <input type="email" id="auth-email" class="form-input" placeholder="ejemplo@correo.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" id="auth-password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="auth-submit">
+                    <i class="fas fa-sign-in-alt"></i> Entrar o Registrarse
+                </button>
+            </form>
+
+            <p id="auth-error" class="text-danger text-center mt-md" style="font-size: 0.85rem; display: none;"></p>
+
+            <div class="mt-lg text-center" style="font-size: 0.8rem; color: var(--text-muted);">
+                <p>Al entrar, se creará una cuenta automáticamente si no tienes una.</p>
+            </div>
+        </div>
+    </div>
+    <!-- ===== TOAST ===== -->
+    <div id="toast" class="toast">
+        <div class="toast-icon success">
+            <i class="fas fa-check"></i>
+        </div>
+        <span class="toast-message">Mensaje</span>
+    </div>
+
+    <!-- ===== MODAL: AGREGAR TRANSACCIÓN ===== -->
+    <div id="modal-add-transaction" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Nueva Transacción</h3>
+                <button class="modal-close" onclick="closeModal('modal-add-transaction')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-transaction" class="modal-body" onsubmit="saveTransaction(event)">
+                <input type="hidden" id="tx-type" value="expense">
+                <input type="hidden" id="tx-category" value="other">
+
+                <div class="form-group">
+                    <label class="form-label">Monto</label>
+                    <input type="number" id="tx-amount" class="form-input" placeholder="0.00" step="0.01"
+                        inputmode="decimal" onfocus="this.select()" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Título</label>
+                    <input type="text" id="tx-title" class="form-input" placeholder="Ej: Almuerzo" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Categoría</label>
+                    <div id="category-options" class="assistant-suggestions">
+                        <!-- Se renderiza dinámicamente -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Cuenta</label>
+                    <select id="tx-account" class="form-input form-select">
+                        <!-- Se renderiza dinámicamente -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nota (opcional)</label>
+                    <input type="text" id="tx-note" class="form-input" placeholder="Agregar nota...">
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-check"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: CUENTAS ===== -->
+    <div id="modal-accounts" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Gestión de Cuentas</h3>
+                <button class="modal-close" onclick="closeModal('modal-accounts')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="accounts-summary" style="margin-bottom: var(--spacing-lg);">
+                    <div class="accounts-summary-header">
+                        <div>
+                            <div class="accounts-total-label">Saldo Total</div>
+                            <div class="accounts-total-value" id="accounts-total">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="accounts-list-modal" class="accounts-list">
+                    <!-- Se renderiza dinámicamente -->
+                </div>
+
+                <button class="btn btn-primary btn-block mt-lg" onclick="openModal('modal-add-account')">
+                    <i class="fas fa-plus"></i> Añadir cuenta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: BOLSILLOS ===== -->
+    <div id="modal-pockets" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Bolsillos de Ahorro</h3>
+                <button class="modal-close" onclick="closeModal('modal-pockets')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="savings-header">
+                    <div class="savings-label">Total Ahorrado</div>
+                    <div class="savings-total" id="pockets-total">$0.00</div>
+                </div>
+
+                <div id="pockets-list-modal">
+                    <!-- Se renderiza dinámicamente -->
+                </div>
+
+                <button class="btn btn-primary btn-block mt-lg" onclick="openModal('modal-add-pocket')">
+                    <i class="fas fa-piggy-bank"></i> Crear Bolsillo
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ===== MODAL: TRANSFERENCIA ===== -->
+    <div id="modal-transfer" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Nueva Transferencia</h3>
+                <button class="modal-close" onclick="closeModal('modal-transfer')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-transfer" class="modal-body" onsubmit="saveTransfer(event)">
+                <div class="form-group">
+                    <label class="form-label">Monto</label>
+                    <input type="number" id="tr-amount" class="form-input" placeholder="0.00" step="0.01"
+                        inputmode="decimal" onfocus="this.select()" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Desde</label>
+                    <select id="tr-from-account" class="form-input form-select">
+                        <!-- Se renderiza dinámicamente -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Hacia</label>
+                    <select id="tr-to-account" class="form-input form-select">
+                        <!-- Se renderiza dinámicamente -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nota (opcional)</label>
+                    <input type="text" id="tr-note" class="form-input" placeholder="Motivo de la transferencia...">
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-exchange-alt"></i> Transferir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: CATEGORÍAS ===== -->
+    <div id="modal-categories" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Desglose por Categoría</h3>
+                <button class="modal-close" onclick="closeModal('modal-categories')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="tab-underline" style="margin-bottom: 1.5rem;">
+                    <button class="tab cat-type-tab active" data-cat-type="expense"
+                        onclick="setCategoryView('expense')">Gastos</button>
+                    <button class="tab cat-type-tab" data-cat-type="income"
+                        onclick="setCategoryView('income')">Ingreso</button>
+                </div>
+
+                <div id="categories-list-modal" class="categories-list">
+                    <!-- Se renderiza dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ===== MODAL: NUEVA CUENTA ===== -->
+    <div id="modal-add-account" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Nueva Cuenta</h3>
+                <button class="modal-close" onclick="closeModal('modal-add-account')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-account" class="modal-body" onsubmit="saveAccount(event)">
+                <div class="form-group">
+                    <label class="form-label">Nombre de la Cuenta</label>
+                    <input type="text" id="acc-name" class="form-input" placeholder="Ej: Ahorro Vacaciones" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Saldo Inicial</label>
+                    <input type="number" id="acc-balance" class="form-input" placeholder="0.00" step="0.01"
+                        inputmode="decimal" onfocus="this.select()" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tipo de Cuenta</label>
+                    <select id="acc-type" class="form-input form-select">
+                        <option value="cash">Efectivo</option>
+                        <option value="bank">Banco / Debito</option>
+                        <option value="credit">Tarjeta de Crédito</option>
+                        <option value="savings">Ahorros</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-plus"></i> Crear Cuenta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: NUEVO BOLSILLO ===== -->
+    <div id="modal-add-pocket" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Nuevo Bolsillo</h3>
+                <button class="modal-close" onclick="closeModal('modal-add-pocket')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-pocket" class="modal-body" onsubmit="savePocket(event)">
+                <div class="form-group">
+                    <label class="form-label">Nombre del Bolsillo</label>
+                    <input type="text" id="pocket-name" class="form-input" placeholder="Ej: Viaje a Japón" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Meta de Ahorro</label>
+                    <input type="number" id="pocket-target" class="form-input" placeholder="0.00" step="0.01"
+                        inputmode="decimal" onfocus="this.select()" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Color Distintivo</label>
+                    <input type="color" id="pocket-color" class="form-input" value="#6366f1"
+                        style="height: 45px; padding: 5px;">
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-check"></i> Crear Bolsillo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: DEPOSITAR A BOLSILLO ===== -->
+    <div id="modal-deposit-pocket" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Depositar a Bolsillo</h3>
+                <button class="modal-close" onclick="closeModal('modal-deposit-pocket')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-deposit-pocket" class="modal-body" onsubmit="savePocketDeposit(event)">
+                <input type="hidden" id="deposit-pocket-id">
+
+                <div class="form-group">
+                    <label class="form-label">Bolsillo Destino</label>
+                    <input type="text" id="deposit-pocket-name" class="form-input" readonly
+                        style="background: var(--bg-secondary); color: var(--text-secondary);">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Monto a Depositar</label>
+                    <input type="number" id="deposit-amount" class="form-input" placeholder="0.00" step="0.01"
+                        inputmode="decimal" onfocus="this.select()" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Desde Cuenta (Opcional)</label>
+                    <select id="deposit-from-account" class="form-input form-select">
+                        <!-- Se renderiza dinámicamente -->
+                    </select>
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-piggy-bank"></i> Guardar Ahorro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: PRESUPUESTO ===== -->
+    <div id="modal-budget" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Ajustar Presupuesto</h3>
+                <button class="modal-close" onclick="closeModal('modal-budget')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-budget" class="modal-body" onsubmit="saveBudget(event)">
+                <div class="form-group">
+                    <label class="form-label">Presupuesto Mensual</label>
+                    <input type="number" id="budget-amount" class="form-input" placeholder="0.00" step="0.01"
+                        inputmode="decimal" onfocus="this.select()" required>
+                    <p class="form-help" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 5px;">
+                        Este monto se usará para calcular tu progreso diario y restante.</p>
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: ASISTENTE AI ===== -->
+    <div id="modal-assistant" class="modal-overlay modal-centered">
+        <div class="modal" style="max-height: 85vh;">
+            <div class="modal-header">
+                <button class="page-back" onclick="closeModal('modal-assistant')">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h3 class="modal-title">Asistente de FinanzApp</h3>
+                <button class="modal-close" onclick="closeModal('modal-assistant')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; height: calc(85vh - 140px);">
+                <!-- Header del Asistente -->
+                <div class="assistant-header">
+                    <p class="assistant-greeting" id="user-name">Hola, Usuario</p>
+                    <h2 class="assistant-title">¿Por dónde empezamos?</h2>
+                </div>
+
+                <!-- Sugerencias -->
+                <div class="assistant-suggestions">
+                    <button class="assistant-suggestion" onclick="assistantQuickAction('analyze')">
+                        <i class="fas fa-chart-pie"></i> Analizar mis gastos
+                    </button>
+                    <button class="assistant-suggestion" onclick="assistantQuickAction('add')">
+                        <i class="fas fa-plus-circle"></i> Añadir transacción
+                    </button>
+                    <button class="assistant-suggestion" onclick="assistantQuickAction('budget')">
+                        <i class="fas fa-calculator"></i> Revisar presupuesto
+                    </button>
+                    <button class="assistant-suggestion" onclick="assistantQuickAction('save')">
+                        <i class="fas fa-lightbulb"></i> ¿Cómo puedo ahorrar más?
+                    </button>
+                </div>
+
+                <!-- Chat -->
+                <div id="assistant-chat" class="assistant-chat">
+                    <div class="chat-message animate-fade-in">
+                        <div class="chat-avatar"><i class="fas fa-robot"></i></div>
+                        <div class="chat-bubble">
+                            ¡Hola! Soy tu asistente financiero. Puedo ayudarte a analizar tus gastos,
+                            registrar transacciones o darte consejos para ahorrar. ¿En qué puedo
+                            ayudarte?
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="assistant-input">
+                    <button class="btn-options" type="button">
+                        <i class="fas fa-sliders-h"></i>
+                    </button>
+                    <input type="text" id="assistant-input" placeholder="Añadir: cena $32"
+                        onkeypress="if(event.key === 'Enter') sendAssistantMessage()">
+                    <button class="btn-voice" type="button" onclick="sendAssistantMessage()">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+
+
+        <!-- ===== PÁGINA: DASHBOARD ===== -->
+        <div id="page-dashboard" class="page active">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="header-icon" onclick="toggleSidebar()"
+                        style="background: transparent; margin-left: -10px;">
+                        <i class="fas fa-bars" style="font-size: 1.2rem;"></i>
+                    </button>
+                    <div class="header-logo">$</div>
+                    <div class="header-title">
+                        <h1>FinanzApp</h1>
+                        <span>Bienvenido de nuevo</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="header-icon" onclick="openAssistant()">
+                        <i class="fas fa-robot"></i>
+                        <span class="badge">1</span>
+                    </button>
+                    <button class="header-icon">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <div class="header-avatar" id="user-initials">UD</div>
+                </div>
+            </header>
+
+            <main class="app-content">
+                <!-- Card Patrimonio -->
+                <div class="patrimony-card animate-fade-in-up">
+                    <div class="patrimony-header">
+                        <div class="patrimony-label">
+                            Patrimonio Total <i class="fas fa-eye"></i>
+                        </div>
+                        <button class="patrimony-action" onclick="navigateTo('analysis')">
+                            <i class="fas fa-chart-line"></i> Gastando Más
+                        </button>
+                    </div>
+                    <div class="patrimony-amount" id="total-balance">$0.00</div>
+                    <div class="patrimony-details">
+                        <div class="patrimony-item">
+                            <div class="patrimony-item-label">
+                                <i class="fas fa-circle"></i> Disponible
+                            </div>
+                            <div class="patrimony-item-value" id="available-balance">$0.00</div>
+                        </div>
+                        <div class="patrimony-item">
+                            <div class="patrimony-item-label">
+                                <i class="fas fa-circle"></i> Ahorrado
+                            </div>
+                            <div class="patrimony-item-value accent" id="saved-balance" onclick="openPockets()">
+                                $0.00
+                            </div>
+                        </div>
+                        <div class="patrimony-item">
+                            <div class="patrimony-item-label">
+                                Ingresos del Periodo
+                            </div>
+                            <div class="patrimony-item-value success" id="period-income">$0.00</div>
+                        </div>
+                        <div class="patrimony-item">
+                            <div class="patrimony-item-label">
+                                restante
+                            </div>
+                            <div class="patrimony-item-value" id="remaining-budget">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Período Ingresos/Gastos -->
+                <div class="period-card animate-fade-in-up delay-100">
+                    <div class="period-item">
+                        <div class="period-label">
+                            <i class="fas fa-arrow-up"></i> Ingresos del Periodo
+                        </div>
+                        <div class="period-value income" id="period-income-card">
+                            <span id="period-income">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="period-item">
+                        <div class="period-label">
+                            <i class="fas fa-arrow-down"></i> Gastos del Periodo
+                        </div>
+                        <div class="period-value expense" id="period-expense">$0.00</div>
+                    </div>
+                </div>
+
+                <!-- Acciones Rápidas -->
+                <section class="quick-actions animate-fade-in-up delay-200">
+                    <h2 class="quick-actions-title">Acciones Rápidas</h2>
+                    <div class="quick-actions-grid">
+                        <button class="quick-action" onclick="quickAction('expense')">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-minus"></i>
+                            </div>
+                            <span class="quick-action-label">Gasto</span>
+                        </button>
+                        <button class="quick-action" onclick="quickAction('income')">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <span class="quick-action-label">Ingreso</span>
+                        </button>
+                        <button class="quick-action" onclick="quickAction('transfer')">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <span class="quick-action-label">Transferencia</span>
+                        </button>
+                        <button class="quick-action" onclick="openAccounts()">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <span class="quick-action-label">Cuentas</span>
+                        </button>
+                        <button class="quick-action" onclick="quickAction('categories')">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <span class="quick-action-label">Categorías</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Resumen Financiero -->
+                <section class="financial-summary animate-fade-in-up delay-300">
+                    <h2 class="financial-summary-title">Resumen Financiero Rápido</h2>
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <div class="summary-card-header">
+                                <div class="summary-card-icon accent"></div>
+                                <span class="summary-card-label">Promedio Diario</span>
+                            </div>
+                            <div class="summary-card-value" id="daily-average">$0.00</div>
+                            <div class="summary-card-meta">28 días transcurridos</div>
+                            <span class="summary-card-badge warning" id="daily-goal">Meta: $0/día</span>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card-header">
+                                <div class="summary-card-icon info"></div>
+                                <span class="summary-card-label">restante</span>
+                            </div>
+                            <div class="summary-card-value" id="budget-remaining">$0.00</div>
+                            <div class="summary-card-meta">Presupuesto</div>
+                            <span class="summary-card-badge success" id="budget-percent">0% Usado</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- NUEVO: Sección de Bolsillos -->
+                <section class="dashboard-pockets animate-fade-in-up delay-400">
+                    <div class="section-header"
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 class="section-title" style="font-size: 1.1rem; font-weight: 700; margin: 0;">Mis Bolsillos
+                        </h2>
+                        <button class="btn-text" onclick="openPockets()"
+                            style="color: var(--accent-primary); font-weight: 600; font-size: 0.9rem; background: transparent; border: none; cursor: pointer;">Ver
+                            todos</button>
+                    </div>
+                    <div id="dashboard-pockets-list" class="pockets-horizontal-list"
+                        style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 10px; -webkit-overflow-scrolling: touch;">
+                        <!-- Se renderiza dinámicamente -->
+                        <div class="empty-state"
+                            style="padding: 1rem; text-align: center; width: 100%; color: var(--text-muted); font-size: 0.9rem;">
+                            Cargando metas de ahorro...
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- ===== PÁGINA: TRANSACCIONES ===== -->
+        <div id="page-transactions" class="page">
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="header-icon" onclick="toggleSidebar()"
+                        style="background: transparent; margin-left: -10px;">
+                        <i class="fas fa-bars" style="font-size: 1.2rem;"></i>
+                    </button>
+                    <div class="header-logo" style="background: var(--accent-primary);">
+                        <i class="fas fa-receipt" style="color: var(--bg-primary); font-size: 1rem;"></i>
+                    </div>
+                    <div class="header-title">
+                        <h1>Transacciones</h1>
+                        <span>Rastrea tus gastos e ingresos</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="header-icon">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="header-icon">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                </div>
+            </header>
+
+            <main class="app-content">
+                <!-- Resumen -->
+                <div class="period-card">
+                    <div class="period-item">
+                        <div class="period-label">
+                            <i class="fas fa-arrow-up"></i> Ingreso Total
+                        </div>
+                        <div class="period-value income" id="tx-income-total">$0.00</div>
+                    </div>
+                    <div class="period-item">
+                        <div class="period-label">
+                            <i class="fas fa-arrow-down"></i> Gastos Totales
+                        </div>
+                        <div class="period-value expense" id="tx-expense-total">$0.00</div>
+                    </div>
+                </div>
+
+                <!-- Filtros de Período -->
+                <div class="tabs">
+                    <button class="tab filter-tab active" data-filter="30days" onclick="setFilter('30days')">Últimos
+                        30
+                        Días</button>
+                    <button class="tab filter-tab" data-filter="today" onclick="setFilter('today')">Hoy</button>
+                    <button class="tab filter-tab" data-filter="yesterday"
+                        onclick="setFilter('yesterday')">Ayer</button>
+                    <button class="tab filter-tab" data-filter="week" onclick="setFilter('week')">Esta
+                        Semana</button>
+                </div>
+
+                <!-- Filtros de Tipo -->
+                <div class="tab-underline">
+                    <button class="tab type-tab active" data-type="all"
+                        onclick="setTransactionType('all')">Todos</button>
+                    <button class="tab type-tab" data-type="expense"
+                        onclick="setTransactionType('expense')">Gastos</button>
+                    <button class="tab type-tab" data-type="income"
+                        onclick="setTransactionType('income')">Ingreso</button>
+                </div>
+
+                <!-- Búsqueda y Exportar -->
+                <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem; align-items:center;">
+                    <div style="flex:1; position:relative;">
+                        <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.85rem;"></i>
+                        <input type="text" id="tx-search" placeholder="Buscar movimientos..." style="width:100%; padding:0.6rem 0.75rem 0.6rem 2.2rem; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); color:var(--text-primary); font-size:0.85rem; box-sizing:border-box;">
+                    </div>
+                    <button onclick="exportToCSV()" title="Exportar CSV" style="padding:0.6rem 0.85rem; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); color:var(--text-secondary); cursor:pointer; white-space:nowrap; font-size:0.8rem;">
+                        <i class="fas fa-download"></i> CSV
+                    </button>
+                </div>
+
+                <!-- Lista de Transacciones -->
+                <div id="transactions-list" class="transactions-list stagger-children">
+                    <!-- Se renderiza dinámicamente -->
+                </div>
+            </main>
+        </div>
+
+        <!-- ===== PÁGINA: ANÁLISIS ===== -->
+        <div id="page-analysis" class="page">
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="header-icon" onclick="toggleSidebar()"
+                        style="background: transparent; margin-left: -10px;">
+                        <i class="fas fa-bars" style="font-size: 1.2rem;"></i>
+                    </button>
+                    <div class="header-title">
+                        <h1>Análisis</h1>
+                        <div class="analysis-date">
+                            <i class="fas fa-calendar"></i>
+                            <span id="analysis-date-range">ene 2, 2026 - Hoy</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="header-icon">
+                        <i class="fas fa-sliders-h"></i>
+                    </button>
+                </div>
+            </header>
+
+            <main class="app-content">
+                <!-- Filtros de Período -->
+                <div class="tabs">
+                    <button class="tab filter-tab active" data-filter="30days" onclick="setFilter('30days')">Últimos
+                        30
+                        Días</button>
+                    <button class="tab filter-tab" data-filter="today" onclick="setFilter('today')">Hoy</button>
+                    <button class="tab filter-tab" data-filter="yesterday"
+                        onclick="setFilter('yesterday')">Ayer</button>
+                    <button class="tab filter-tab" data-filter="week" onclick="setFilter('week')">Esta
+                        Semana</button>
+                </div>
+
+                <!-- Cards de Análisis -->
+                <div class="analysis-cards">
+                    <div class="analysis-card">
+                        <div class="analysis-card-header">
+                            <i class="fas fa-arrow-down analysis-card-icon expense"></i>
+                            <span class="analysis-card-label">Total gastado</span>
+                        </div>
+                        <div class="analysis-card-value" id="analysis-expense">$0.00</div>
+                        <div class="analysis-card-meta">Periodo Seleccionado</div>
+                    </div>
+                    <div class="analysis-card">
+                        <div class="analysis-card-header">
+                            <i class="fas fa-arrow-up analysis-card-icon income"></i>
+                            <span class="analysis-card-label">Ingreso Total</span>
+                        </div>
+                        <div class="analysis-card-value" id="analysis-income">$0.00</div>
+                        <div class="analysis-card-meta">Periodo Seleccionado</div>
+                    </div>
+                </div>
+
+                <!-- Balance del Período -->
+                <div class="analysis-balance">
+                    <div class="balance-info">
+                        <div class="balance-label">Balance del Periodo</div>
+                        <div class="balance-value" id="analysis-balance">$0.00</div>
+                        <div class="balance-meta" id="analysis-count">0 transacciones</div>
+                    </div>
+                    <div class="balance-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                </div>
+
+                <!-- Tabs de Análisis -->
+                <div class="tab-underline">
+                    <button class="tab" data-analysis-type="budget"
+                        onclick="setAnalysisType('budget')">Presupuesto</button>
+                    <button class="tab active" data-analysis-type="expense"
+                        onclick="setAnalysisType('expense')">Gastos</button>
+                    <button class="tab" data-analysis-type="income" onclick="setAnalysisType('income')">Ingreso</button>
+                    <button class="tab" data-analysis-type="categories"
+                        onclick="setAnalysisType('categories')">Categorías</button>
+                </div>
+
+
+
+                <!-- Gráfica -->
+                <div class="chart-container animate-fade-in-up">
+                    <h3 class="chart-title">Últimos 30 Días Gastos</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="expense-chart"></canvas>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ===== PÁGINA: PERFIL ===== -->
+        <div id="page-profile" class="page">
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="header-icon" onclick="toggleSidebar()"
+                        style="background: transparent; margin-left: -10px;">
+                        <i class="fas fa-bars" style="font-size: 1.2rem;"></i>
+                    </button>
+                    <div class="header-title">
+                        <h1>Tu Perfil</h1>
+                    </div>
+                </div>
+            </header>
+
+            <main class="app-content">
+                <!-- Card de Perfil -->
+                <div class="profile-header animate-fade-in-up">
+                    <button class="profile-edit">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <div class="profile-avatar">
+                        <span id="profile-avatar-text">UD</span>
+                    </div>
+                    <h2 class="profile-name" id="profile-name">Usuario Demo</h2>
+                    <p class="profile-email" id="profile-email">demo@finanzapp.com</p>
+                    <span class="profile-badge">
+                        <i class="fas fa-crown"></i>
+                        <span id="profile-type">Premium</span>
+                    </span>
+                </div>
+
+                <!-- Sección Comunidad -->
+                <section class="profile-section animate-fade-in-up delay-100">
+                    <h3 class="profile-section-title">
+                        <i class="fas fa-users"></i> Comunidad
+                    </h3>
+
+                    <div class="profile-menu-item">
+                        <div class="profile-menu-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <div class="profile-menu-text">
+                            <h4>Funciones & Errores</h4>
+                            <p>Reportar errores, sugerir funciones</p>
+                        </div>
+                        <div class="profile-menu-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+
+                    <div class="profile-menu-item">
+                        <div class="profile-menu-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="profile-menu-text">
+                            <h4>Valora FinanzApp</h4>
+                            <p>Comparte tu experiencia en la tienda</p>
+                        </div>
+                        <div class="profile-menu-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección Mi Cuenta -->
+                <section class="profile-section animate-fade-in-up delay-200">
+                    <h3 class="profile-section-title">
+                        <i class="fas fa-user-cog"></i> Mi Cuenta
+                    </h3>
+
+                    <div class="profile-menu-item">
+                        <div class="profile-menu-icon">
+                            <i class="fas fa-pen"></i>
+                        </div>
+                        <div class="profile-menu-text">
+                            <h4>Editar Perfil</h4>
+                            <p>Actualiza tu información personal</p>
+                        </div>
+                        <div class="profile-menu-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="openBudgetModal()">
+                        <div class="profile-menu-icon">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <div class="profile-menu-text">
+                            <h4>Presupuesto</h4>
+                            <p>Ajustar presupuesto mensual</p>
+                        </div>
+                        <div class="profile-menu-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+
+
+                    <div class="profile-menu-item" onclick="resetData()">
+                        <div class="profile-menu-icon" style="color: var(--danger);">
+                            <i class="fas fa-trash"></i>
+                        </div>
+                        <div class="profile-menu-text">
+                            <h4>Borrar Datos</h4>
+                            <p>Eliminar toda la información local</p>
+                        </div>
+                        <div class="profile-menu-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+
+        <!-- ===== NAVEGACIÓN INFERIOR ===== -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-page="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Inicio</span>
+            </button>
+            <button class="nav-item" data-page="transactions">
+                <i class="fas fa-receipt"></i>
+                <span>Transacciones</span>
+            </button>
+            <button class="nav-item nav-add" id="fab-add" onclick="openAddTransaction('expense')">
+                <i class="fas fa-plus"></i>
+            </button>
+            <button class="nav-item" data-page="analysis">
+                <i class="fas fa-chart-bar"></i>
+                <span>Análisis</span>
+            </button>
+            <button class="nav-item" data-page="profile">
+                <i class="fas fa-user"></i>
+                <span>Perfil</span>
+            </button>
+        </nav>
+
+        <!-- ===== FAB FLOTANTE ===== -->
+        <button class="fab fab-animated hidden" onclick="openAssistant()">
+            <i class="fas fa-robot"></i>
+        </button>
+
+    </div>
+
+    <!-- Scripts -->
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-client.js"></script>
+
+    <!-- Chart.js -->
+    <!-- ===== SIDEBAR DRAWER ===== -->
+    <div id="sidebar-overlay" class="modal-overlay" onclick="closeSidebar()"
+        style="align-items: flex-start; justify-content: flex-start;">
+        <div id="sidebar-drawer" class="sidebar-drawer">
+            <div class="sidebar-header">
+                <div class="header-logo" style="width: 50px; height: 50px; font-size: 1.5rem;">$</div>
+                <div class="sidebar-user-info">
+                    <h3 id="sidebar-user-name">Usuario Demo</h3>
+                    <p id="sidebar-user-email">demo@finanzapp.com</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="sidebar-nav-item" onclick="navigateTo('dashboard'); closeSidebar()">
+                    <i class="fas fa-home"></i>
+                    <span>Inicio</span>
+                </div>
+                <div class="sidebar-nav-item" onclick="navigateTo('transactions'); closeSidebar()">
+                    <i class="fas fa-receipt"></i>
+                    <span>Transacciones</span>
+                </div>
+                <div class="sidebar-nav-item" onclick="navigateTo('analysis'); closeSidebar()">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Análisis</span>
+                </div>
+                <div class="sidebar-nav-item" onclick="navigateTo('profile'); closeSidebar()">
+                    <i class="fas fa-user"></i>
+                    <span>Mi Perfil</span>
+                </div>
+
+                <div class="sidebar-divider"></div>
+
+                <div class="sidebar-nav-item" onclick="openAccounts(); closeSidebar()">
+                    <i class="fas fa-wallet"></i>
+                    <span>Cuentas</span>
+                </div>
+                <div class="sidebar-nav-item" onclick="openPockets(); closeSidebar()">
+                    <i class="fas fa-piggy-bank"></i>
+                    <span>Bolsillos</span>
+                </div>
+                <div class="sidebar-nav-item" onclick="openBudgetModal(); closeSidebar()">
+                    <i class="fas fa-cog"></i>
+                    <span>Ajustes de Presupuesto</span>
+                </div>
+
+                <div class="sidebar-divider"></div>
+
+                <div class="sidebar-nav-item" onclick="handleLogout()" style="color: var(--danger);">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Cerrar Sesión</span>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <p>FinanzApp v2.0 - Premium</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Scripts Locales -->
+    <script src="js/utils.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Register Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+
+
+</html>
