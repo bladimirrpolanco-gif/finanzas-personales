@@ -113,6 +113,22 @@ async function handleAuth(e) {
     }
 }
 
+// ===== MODALES =====
+function setupModals() {
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('active');
+        });
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.active').forEach(m => {
+                if (m.id !== 'auth-overlay') m.classList.remove('active');
+            });
+        }
+    });
+}
+
 // ===== NAVEGACIÓN =====
 function setupNavigation() {
     document.querySelectorAll('.nav-item[data-page]').forEach(n => {
