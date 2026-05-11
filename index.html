@@ -466,6 +466,29 @@
 
     <div class="app-container">
 
+        <!-- ===== SIDEBAR DESKTOP (solo visible en pantallas >= 1024px) ===== -->
+        <aside id="desktop-sidebar">
+            <div class="ds-header">
+                <div class="ds-logo">$</div>
+                <div>
+                    <div class="ds-name" id="ds-user-name">Usuario</div>
+                    <div class="ds-email" id="ds-user-email">usuario@email.com</div>
+                </div>
+            </div>
+            <nav class="ds-nav">
+                <div class="ds-item" onclick="navigateTo('dashboard')"><i class="fas fa-home"></i><span>Inicio</span></div>
+                <div class="ds-item" onclick="navigateTo('transactions')"><i class="fas fa-receipt"></i><span>Transacciones</span></div>
+                <div class="ds-item" onclick="navigateTo('analysis')"><i class="fas fa-chart-pie"></i><span>Análisis</span></div>
+                <div class="ds-item" onclick="navigateTo('profile')"><i class="fas fa-user"></i><span>Mi Perfil</span></div>
+                <div class="ds-divider"></div>
+                <div class="ds-item" onclick="openAccounts()"><i class="fas fa-wallet"></i><span>Cuentas</span></div>
+                <div class="ds-item" onclick="openPockets()"><i class="fas fa-piggy-bank"></i><span>Bolsillos</span></div>
+                <div class="ds-item" onclick="openBudgetModal()"><i class="fas fa-cog"></i><span>Presupuesto</span></div>
+                <div class="ds-divider"></div>
+                <div class="ds-item ds-logout" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></div>
+            </nav>
+            <div class="ds-footer">FinanzApp v2.0</div>
+        </aside>
 
         <!-- ===== PÁGINA: DASHBOARD ===== -->
         <div id="page-dashboard" class="page active">

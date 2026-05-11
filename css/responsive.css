@@ -10,51 +10,135 @@
     .quick-action-icon { width: 48px !important; height: 48px !important; }
 }
 
+/* ===== SIDEBAR DESKTOP - oculto en móvil ===== */
+#desktop-sidebar { display: none; }
+
 /* ===== DESKTOP (1024px+) ===== */
 @media (min-width: 1024px) {
 
-    body {
-        overflow-x: hidden;
-        padding-left: 260px;
+    body { overflow-x: hidden; }
+
+    /* ===== SIDEBAR DESKTOP ===== */
+    #desktop-sidebar {
+        display: flex;
+        flex-direction: column;
+        width: 260px;
+        min-width: 260px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        background: linear-gradient(180deg, #0E0E16 0%, #080810 100%);
+        border-right: 1px solid rgba(255,255,255,0.06);
+        overflow-y: auto;
+        z-index: 100;
     }
 
-    /* Sidebar fijo a la izquierda */
-    #sidebar-overlay {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: auto !important;
-        bottom: 0 !important;
-        width: 260px !important;
-        height: 100vh !important;
-        background: transparent !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        z-index: 50 !important;
-        pointer-events: none !important;
-        display: block !important;
-        align-items: unset !important;
-        justify-content: unset !important;
+    .ds-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 24px 20px;
+        background: linear-gradient(135deg, rgba(202,253,10,0.08) 0%, transparent 60%);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
     }
 
-    .sidebar-drawer {
-        transform: translateX(0) !important;
-        position: fixed !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 260px !important;
-        height: 100vh !important;
-        pointer-events: auto !important;
-        box-shadow: none !important;
-        border-right: 1px solid var(--border-color) !important;
+    .ds-logo {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        background: linear-gradient(135deg, #CAFD0A, #95E600);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 1.2rem;
+        color: #000;
+        box-shadow: 0 2px 12px rgba(202,253,10,0.35);
     }
 
-    /* Ocultar bottom-nav */
+    .ds-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #F0F0FF;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+
+    .ds-email {
+        font-size: 0.65rem;
+        color: #7A7A9A;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+
+    .ds-nav {
+        flex: 1;
+        padding: 12px 10px;
+    }
+
+    .ds-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        color: #7A7A9A;
+        cursor: pointer;
+        transition: all 150ms ease;
+        margin-bottom: 2px;
+        font-size: 0.88rem;
+        font-weight: 500;
+    }
+
+    .ds-item:hover {
+        background: rgba(202,253,10,0.07);
+        color: #CAFD0A;
+    }
+
+    .ds-item i {
+        width: 18px;
+        text-align: center;
+        font-size: 0.95rem;
+    }
+
+    .ds-item.ds-active {
+        background: rgba(202,253,10,0.1);
+        color: #CAFD0A;
+        border: 1px solid rgba(202,253,10,0.15);
+    }
+
+    .ds-logout {
+        color: #FF4F6A !important;
+    }
+
+    .ds-logout:hover {
+        background: rgba(255,79,106,0.08) !important;
+        color: #FF4F6A !important;
+    }
+
+    .ds-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.05);
+        margin: 8px 4px;
+    }
+
+    .ds-footer {
+        padding: 16px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        font-size: 0.6rem;
+        color: #3A3A55;
+        text-align: center;
+        letter-spacing: 0.5px;
+    }
+
+    /* Ocultar sidebar modal y bottom-nav en desktop */
     .bottom-nav { display: none !important; }
-
-    /* Ocultar botón hamburguesa */
     button[onclick="toggleSidebar()"] { display: none !important; }
 
     /* Ajustar container */

@@ -33,35 +33,27 @@ async function initApp() {
 }
 
 function setupDesktopSidebar() {
-    const apply = () => {
-        const overlay = document.getElementById('sidebar-overlay');
-        const drawer = document.getElementById('sidebar-drawer');
-        if (!overlay || !drawer) return;
+    const nameEl = document.getElementById('ds-user-name');
+    const emailEl = document.getElementById('ds-user-email');
+    if (nameEl && FinanzData.user) {
+        const email = FinanzData.user.email || '';
+        nameEl.textContent = email.split('@')[0] || 'Usuario';
+        emailEl.textContent = email;
+    }
+    updateDesktopSidebarActive();
+}
 
-        if (window.innerWidth >= 1024) {
-            overlay.style.cssText = `
-                position: fixed !important;
-                top: 0; left: 0; right: auto; bottom: 0;
-                width: 260px; height: 100vh;
-                background: transparent;
-                backdrop-filter: none;
-                opacity: 1; visibility: visible;
-                z-index: 50; pointer-events: none;
-                display: block;
-            `;
-            drawer.style.transform = 'translateX(0)';
-            drawer.style.pointerEvents = 'auto';
-            document.body.style.paddingLeft = '260px';
-        } else {
-            overlay.style.cssText = '';
-            drawer.style.transform = '';
-            drawer.style.pointerEvents = '';
-            document.body.style.paddingLeft = '';
+function updateDesktopSidebarActive() {
+    document.querySelectorAll('#desktop-sidebar .ds-item').forEach(item => {
+        item.classList.remove('ds-active');
+    });
+    const items = document.querySelectorAll('#desktop-sidebar .ds-item');
+    items.forEach(item => {
+        const onclick = item.getAttribute('onclick') || '';
+        if (onclick.includes(`'${currentPage}'`)) {
+            item.classList.add('ds-active');
         }
-    };
-
-    apply();
-    window.addEventListener('resize', apply);
+    });
 }
 
 // ===== AUTO LOGIN USUARIO ÚNICO =====
@@ -189,6 +181,7 @@ async function navigateTo(page) {
         case 'analysis': await renderAnalysis(); break;
         case 'profile': await renderProfile(); break;
     }
+    updateDesktopSidebarActive();
 }
 
 // ===== RENDERING =====
