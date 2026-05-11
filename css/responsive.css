@@ -13,23 +13,18 @@
 /* ===== DESKTOP (1024px+) ===== */
 @media (min-width: 1024px) {
 
-    body { overflow-x: hidden; }
-
-    /* Layout principal en fila */
-    .app-container {
-        display: flex !important;
-        flex-direction: row !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        min-height: 100vh;
-        border: none !important;
+    body {
+        overflow-x: hidden;
+        padding-left: 260px;
     }
 
-    /* ===== SIDEBAR PERMANENTE ===== */
+    /* Sidebar fijo a la izquierda */
     #sidebar-overlay {
-        position: sticky !important;
+        position: fixed !important;
         top: 0 !important;
-        inset: auto !important;
+        left: 0 !important;
+        right: auto !important;
+        bottom: 0 !important;
         width: 260px !important;
         height: 100vh !important;
         background: transparent !important;
@@ -37,67 +32,56 @@
         -webkit-backdrop-filter: none !important;
         opacity: 1 !important;
         visibility: visible !important;
-        display: flex !important;
-        align-items: flex-start !important;
-        justify-content: flex-start !important;
-        flex-shrink: 0 !important;
         z-index: 50 !important;
         pointer-events: none !important;
+        display: block !important;
+        align-items: unset !important;
+        justify-content: unset !important;
     }
 
     .sidebar-drawer {
-        position: sticky !important;
-        top: 0 !important;
-        left: auto !important;
         transform: translateX(0) !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
         width: 260px !important;
         height: 100vh !important;
+        pointer-events: auto !important;
         box-shadow: none !important;
         border-right: 1px solid var(--border-color) !important;
-        pointer-events: auto !important;
-        flex-shrink: 0 !important;
     }
 
-    /* Ocultar bottom-nav en desktop */
+    /* Ocultar bottom-nav */
     .bottom-nav { display: none !important; }
 
     /* Ocultar botón hamburguesa */
     button[onclick="toggleSidebar()"] { display: none !important; }
 
-    /* ===== PÁGINAS ===== */
-    .page {
-        flex: 1;
-        min-height: 100vh;
-        display: none;
-        overflow-y: auto;
-        overflow-x: hidden;
-        min-width: 0;
+    /* Ajustar container */
+    .app-container {
+        max-width: 100% !important;
+        border: none !important;
     }
 
-    .page.active {
-        display: flex !important;
-        flex-direction: column;
-    }
+    /* Páginas */
+    .page { min-height: 100vh; }
 
     /* Header */
     .app-header {
-        position: sticky;
-        top: 0;
         padding: var(--spacing-md) var(--spacing-xl) !important;
     }
 
-    /* Contenido centrado */
+    /* Contenido */
     .app-content {
         max-width: 900px !important;
         margin: 0 auto !important;
         padding: var(--spacing-xl) var(--spacing-2xl) !important;
         padding-bottom: var(--spacing-xl) !important;
-        width: 100%;
     }
 
     .fab { display: none !important; }
 
-    /* ===== CARDS DESKTOP ===== */
+    /* Cards */
     .patrimony-amount { font-size: 3rem !important; }
     .patrimony-details { grid-template-columns: repeat(4, 1fr) !important; }
 
