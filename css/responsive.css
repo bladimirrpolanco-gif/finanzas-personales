@@ -12,6 +12,7 @@
 
 /* ===== SIDEBAR DESKTOP - oculto en móvil ===== */
 #desktop-sidebar { display: none; }
+.nav-logout-desktop { display: none; }
 
 /* ===== DESKTOP (1024px+) ===== */
 @media (min-width: 1024px) {
@@ -137,9 +138,18 @@
         letter-spacing: 0.5px;
     }
 
-    /* Ocultar sidebar modal y bottom-nav en desktop */
+    /* Ocultar bottom-nav en desktop */
     .bottom-nav { display: none !important; }
     button[onclick="toggleSidebar()"] { display: none !important; }
+
+    /* Mostrar botón Cerrar Sesión en desktop */
+    .nav-logout-desktop {
+        display: flex !important;
+        color: var(--danger) !important;
+        margin-top: auto !important;
+        border-top: 1px solid var(--border-color);
+        width: 100% !important;
+    }
 
     /* Ajustar container */
     .app-container {
