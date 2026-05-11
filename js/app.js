@@ -28,7 +28,40 @@ async function initApp() {
     setupModals();
     setupTxSearch();
     handleUrlParams();
+    setupDesktopSidebar();
     if (isLoggedIn) checkBudgetAlerts();
+}
+
+function setupDesktopSidebar() {
+    const apply = () => {
+        const overlay = document.getElementById('sidebar-overlay');
+        const drawer = document.getElementById('sidebar-drawer');
+        if (!overlay || !drawer) return;
+
+        if (window.innerWidth >= 1024) {
+            overlay.style.cssText = `
+                position: fixed !important;
+                top: 0; left: 0; right: auto; bottom: 0;
+                width: 260px; height: 100vh;
+                background: transparent;
+                backdrop-filter: none;
+                opacity: 1; visibility: visible;
+                z-index: 50; pointer-events: none;
+                display: block;
+            `;
+            drawer.style.transform = 'translateX(0)';
+            drawer.style.pointerEvents = 'auto';
+            document.body.style.paddingLeft = '260px';
+        } else {
+            overlay.style.cssText = '';
+            drawer.style.transform = '';
+            drawer.style.pointerEvents = '';
+            document.body.style.paddingLeft = '';
+        }
+    };
+
+    apply();
+    window.addEventListener('resize', apply);
 }
 
 // ===== AUTO LOGIN USUARIO ÚNICO =====
