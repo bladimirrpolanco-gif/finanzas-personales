@@ -1,183 +1,161 @@
 /* ===================================
-   FinanzApp - Responsive Premium
+   FinanzApp - Responsive
    =================================== */
 
-/* ===== MÓVILES PEQUEÑOS (<380px) ===== */
+/* Ocultar elementos solo para desktop */
+#desktop-sidebar { display: none; }
+.nav-logout-desktop { display: none; }
+
+/* ===== MÓVILES PEQUEÑOS ===== */
 @media (max-width: 380px) {
     :root { --spacing-md: 12px; --spacing-lg: 16px; }
     .patrimony-amount { font-size: 2rem !important; }
-    .summary-card-value { font-size: 1.25rem !important; }
-    .quick-action-icon { width: 48px !important; height: 48px !important; }
 }
-
-/* ===== SIDEBAR DESKTOP - oculto en móvil ===== */
-#desktop-sidebar { display: none; }
-.nav-logout-desktop { display: none; }
 
 /* ===== DESKTOP (1024px+) ===== */
 @media (min-width: 1024px) {
 
-    body { overflow-x: hidden; }
-
+    /* Layout en fila */
     .app-container {
         display: flex !important;
         flex-direction: row !important;
         max-width: 100% !important;
         border: none !important;
+        min-height: 100vh;
     }
 
-    /* ===== SIDEBAR DESKTOP ===== */
-    #desktop-sidebar {
-        display: flex;
-        flex-direction: column;
-        width: 260px;
-        min-width: 260px;
-        height: 100vh;
-        position: sticky;
+    /* Bottom-nav se convierte en sidebar izquierdo */
+    .bottom-nav {
+        order: -1;
+        position: sticky !important;
         top: 0;
-        background: linear-gradient(180deg, #0E0E16 0%, #080810 100%);
-        border-right: 1px solid rgba(255,255,255,0.06);
-        overflow-y: auto;
-        z-index: 100;
+        width: 220px !important;
+        height: 100vh !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+        padding: 24px 12px !important;
+        background: linear-gradient(180deg, #0E0E16 0%, #080810 100%) !important;
+        border-right: 1px solid rgba(255,255,255,0.06) !important;
+        border-top: none !important;
+        transform: none !important;
+        left: 0 !important;
+        bottom: auto !important;
+        gap: 2px !important;
+        z-index: 100 !important;
+        flex-shrink: 0 !important;
+        backdrop-filter: none !important;
     }
 
-    .ds-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 24px 20px;
-        background: linear-gradient(135deg, rgba(202,253,10,0.08) 0%, transparent 60%);
-        border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .ds-logo {
-        width: 42px;
-        height: 42px;
-        min-width: 42px;
-        background: linear-gradient(135deg, #CAFD0A, #95E600);
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    /* Logo FinanzApp arriba del sidebar */
+    .bottom-nav::before {
+        content: 'FinanzApp';
+        display: block;
+        font-size: 1.3rem;
         font-weight: 900;
-        font-size: 1.2rem;
-        color: #000;
-        box-shadow: 0 2px 12px rgba(202,253,10,0.35);
-    }
-
-    .ds-name {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #F0F0FF;
-        margin-bottom: 2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 160px;
-    }
-
-    .ds-email {
-        font-size: 0.65rem;
-        color: #7A7A9A;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 160px;
-    }
-
-    .ds-nav {
-        flex: 1;
-        padding: 12px 10px;
-    }
-
-    .ds-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 14px;
-        border-radius: 10px;
-        color: #7A7A9A;
-        cursor: pointer;
-        transition: all 150ms ease;
-        margin-bottom: 2px;
-        font-size: 0.88rem;
-        font-weight: 500;
-    }
-
-    .ds-item:hover {
-        background: rgba(202,253,10,0.07);
         color: #CAFD0A;
+        letter-spacing: -0.5px;
+        padding: 0 14px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        margin-bottom: 12px;
+        text-shadow: 0 0 20px rgba(202,253,10,0.3);
     }
 
-    .ds-item i {
-        width: 18px;
-        text-align: center;
-        font-size: 0.95rem;
+    /* Items del nav */
+    .nav-item {
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        padding: 11px 14px !important;
+        gap: 12px !important;
+        border-radius: 10px !important;
+        width: 100% !important;
+        color: #7A7A9A !important;
+        font-size: 0.88rem !important;
+        font-weight: 500 !important;
     }
 
-    .ds-item.ds-active {
-        background: rgba(202,253,10,0.1);
-        color: #CAFD0A;
-        border: 1px solid rgba(202,253,10,0.15);
+    .nav-item i { font-size: 1rem !important; width: 18px; text-align: center; }
+    .nav-item span { display: block !important; font-size: 0.88rem !important; font-weight: 500 !important; }
+
+    .nav-item:hover:not(.nav-add) {
+        background: rgba(202,253,10,0.07) !important;
+        color: #CAFD0A !important;
     }
 
-    .ds-logout {
-        color: #FF4F6A !important;
+    .nav-item.active {
+        background: rgba(202,253,10,0.1) !important;
+        color: #CAFD0A !important;
+        border: 1px solid rgba(202,253,10,0.15) !important;
     }
 
-    .ds-logout:hover {
-        background: rgba(255,79,106,0.08) !important;
-        color: #FF4F6A !important;
+    /* Quitar indicador mobile */
+    .nav-item.active::before { display: none !important; }
+
+    /* Botón + */
+    .nav-item.nav-add {
+        background: linear-gradient(135deg, #CAFD0A, #95E600) !important;
+        color: #000 !important;
+        border-radius: 10px !important;
+        justify-content: center !important;
+        margin-bottom: 8px !important;
+        font-weight: 700 !important;
+        height: auto !important;
+        width: 100% !important;
+        margin-top: 0 !important;
     }
 
-    .ds-divider {
-        height: 1px;
-        background: rgba(255,255,255,0.05);
-        margin: 8px 4px;
+    .nav-item.nav-add::before {
+        content: 'Nueva Transacción' !important;
+        display: block !important;
+        position: static !important;
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+        background: none !important;
+        width: auto !important;
+        height: auto !important;
+        transform: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
     }
 
-    .ds-footer {
-        padding: 16px;
-        border-top: 1px solid rgba(255,255,255,0.05);
-        font-size: 0.6rem;
-        color: #3A3A55;
-        text-align: center;
-        letter-spacing: 0.5px;
-    }
-
-    /* Ocultar bottom-nav en desktop */
-    .bottom-nav { display: none !important; }
-    button[onclick="toggleSidebar()"] { display: none !important; }
-
-    /* Mostrar botón Cerrar Sesión en desktop */
+    /* Botón Cerrar Sesión */
     .nav-logout-desktop {
         display: flex !important;
-        color: var(--danger) !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 11px 14px !important;
+        border-radius: 10px !important;
+        color: #FF4F6A !important;
+        cursor: pointer !important;
         margin-top: auto !important;
-        border-top: 1px solid var(--border-color);
+        border-top: 1px solid rgba(255,255,255,0.06) !important;
+        padding-top: 16px !important;
+        font-size: 0.88rem !important;
+        font-weight: 500 !important;
         width: 100% !important;
+        border: none !important;
+        background: none !important;
     }
 
-    /* Ajustar container */
-    .app-container {
-        max-width: 100% !important;
-        border: none !important;
+    .nav-logout-desktop:hover {
+        background: rgba(255,79,106,0.08) !important;
     }
+
+    /* Ocultar botón hamburguesa */
+    button[onclick="toggleSidebar()"] { display: none !important; }
 
     /* Páginas */
-    .page { min-height: 100vh; }
-
-    /* Header */
-    .app-header {
-        padding: var(--spacing-md) var(--spacing-xl) !important;
-    }
+    .page { min-height: 100vh; display: none; overflow-y: auto; }
+    .page.active { display: flex !important; flex-direction: column; }
 
     /* Contenido */
     .app-content {
-        max-width: 900px !important;
+        max-width: 860px !important;
         margin: 0 auto !important;
-        padding: var(--spacing-xl) var(--spacing-2xl) !important;
-        padding-bottom: var(--spacing-xl) !important;
+        padding: 24px 32px !important;
+        padding-bottom: 24px !important;
     }
 
     .fab { display: none !important; }
@@ -185,33 +163,14 @@
     /* Cards */
     .patrimony-amount { font-size: 3rem !important; }
     .patrimony-details { grid-template-columns: repeat(4, 1fr) !important; }
-
-    .quick-actions-grid {
-        display: grid !important;
-        grid-template-columns: repeat(5, 1fr) !important;
-        gap: var(--spacing-md) !important;
-        overflow-x: visible !important;
-    }
-
-    .summary-cards,
-    .analysis-cards {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: var(--spacing-lg) !important;
-    }
-
+    .quick-actions-grid { display: grid !important; grid-template-columns: repeat(5, 1fr) !important; overflow-x: visible !important; }
+    .summary-cards, .analysis-cards { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
     .chart-wrapper { height: 350px !important; }
-}
-
-/* ===== DESKTOP GRANDE (1280px+) ===== */
-@media (min-width: 1280px) {
-    .app-content { max-width: 1000px !important; }
-    .chart-wrapper { height: 400px !important; }
 }
 
 /* ===== HOVER ===== */
 @media (hover: hover) {
-    .sidebar-nav-item:hover {
-        background: rgba(202,253,10,0.06) !important;
-        color: var(--text-primary) !important;
+    .nav-item:hover:not(.nav-add):not(.active) {
+        background: rgba(255,255,255,0.04) !important;
     }
 }
