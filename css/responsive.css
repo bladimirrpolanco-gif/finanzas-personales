@@ -4,21 +4,18 @@
 
 /* ===== MÓVILES PEQUEÑOS (<380px) ===== */
 @media (max-width: 380px) {
-    :root {
-        --spacing-md: 12px;
-        --spacing-lg: 16px;
-    }
+    :root { --spacing-md: 12px; --spacing-lg: 16px; }
     .patrimony-amount { font-size: 2rem !important; }
     .summary-card-value { font-size: 1.25rem !important; }
     .quick-action-icon { width: 48px !important; height: 48px !important; }
 }
 
-/* ===== TABLET Y DESKTOP (768px+) ===== */
-@media (min-width: 768px) {
-    :root { --nav-width: 80px; }
+/* ===== TABLET Y DESKTOP (1024px+) ===== */
+@media (min-width: 1024px) {
 
     body { overflow-x: hidden; }
 
+    /* Layout principal en fila */
     .app-container {
         display: flex !important;
         flex-direction: row !important;
@@ -26,94 +23,46 @@
         margin: 0 !important;
         min-height: 100vh;
         border: none !important;
+        background: var(--bg-primary) !important;
     }
 
-    /* ===== SIDEBAR NAVEGACIÓN ===== */
-    .bottom-nav {
-        order: -1;
+    /* ===== SIDEBAR FIJO (el drawer se convierte en sidebar permanente) ===== */
+    #sidebar-overlay {
         position: sticky !important;
-        top: 0;
-        left: 0;
-        bottom: auto;
-        width: var(--nav-width) !important;
-        height: 100vh !important;
-        flex-direction: column !important;
-        padding: var(--spacing-xl) 0 !important;
-        background: var(--bg-secondary) !important;
-        background-image: linear-gradient(180deg, #0D0D14 0%, #080810 100%) !important;
-        border-right: 1px solid var(--border-color) !important;
-        border-top: none !important;
-        transform: none !important;
+        top: 0 !important;
         left: 0 !important;
-        justify-content: flex-start !important;
-        gap: 4px !important;
-        z-index: 100 !important;
-        flex-shrink: 0;
+        width: 260px !important;
+        height: 100vh !important;
+        flex-shrink: 0 !important;
+        background: transparent !important;
         backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: flex !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        z-index: 50 !important;
+        pointer-events: auto !important;
     }
 
-    .nav-item {
-        width: 100% !important;
-        padding: 12px var(--spacing-md) !important;
-        flex-direction: column !important;
-        gap: 4px !important;
-        border-radius: 0 !important;
-        position: relative !important;
-        color: var(--text-muted) !important;
+    .sidebar-drawer {
+        position: sticky !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: translateX(0) !important;
+        width: 260px !important;
+        height: 100vh !important;
+        box-shadow: none !important;
+        border-right: 1px solid var(--border-color) !important;
+        z-index: 50 !important;
     }
 
-    /* Reset do indicador mobile (::before) */
-    .nav-item.active::before {
+    /* Ocultar bottom-nav en desktop */
+    .bottom-nav { display: none !important; }
+
+    /* Ocultar botón hamburguesa en header */
+    .app-header .header-left button[onclick="toggleSidebar()"] {
         display: none !important;
-    }
-
-    /* Indicador lateral desktop */
-    .nav-item.active {
-        color: var(--accent-primary) !important;
-        background: rgba(202, 253, 10, 0.06) !important;
-    }
-
-    .nav-item.active::after {
-        content: '' !important;
-        position: absolute !important;
-        right: 0 !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        width: 3px !important;
-        height: 28px !important;
-        background: var(--accent-primary) !important;
-        border-radius: 4px 0 0 4px !important;
-        box-shadow: 0 0 8px rgba(202,253,10,0.5) !important;
-    }
-
-    .nav-item i { font-size: 1.3rem !important; }
-
-    .nav-item span {
-        display: block !important;
-        font-size: 0.6rem !important;
-        font-weight: 600 !important;
-        letter-spacing: 0.3px !important;
-    }
-
-    .nav-item:hover:not(.nav-add) {
-        background: rgba(255,255,255,0.04) !important;
-        color: var(--text-secondary) !important;
-    }
-
-    /* Botón "+" en sidebar */
-    .nav-item.nav-add {
-        order: -1;
-        margin: 0 auto var(--spacing-lg) !important;
-        width: 48px !important;
-        height: 48px !important;
-        min-height: 48px !important;
-        margin-top: var(--spacing-md) !important;
-        border-radius: 14px !important;
-        box-shadow: var(--shadow-accent) !important;
-        flex-direction: row !important;
-        align-self: center !important;
-        padding: 0 !important;
     }
 
     /* ===== PÁGINAS (Lado derecho) ===== */
@@ -123,6 +72,7 @@
         display: none;
         overflow-y: auto;
         overflow-x: hidden;
+        min-width: 0;
     }
 
     .page.active {
@@ -130,43 +80,27 @@
         flex-direction: column;
     }
 
-    /* ===== HEADER ===== */
+    /* Header desktop */
     .app-header {
         position: sticky;
         top: 0;
-        width: 100%;
         padding: var(--spacing-md) var(--spacing-xl) !important;
-        z-index: 50;
     }
 
-    .app-header .header-left {
-        opacity: 1 !important;
-        pointer-events: auto !important;
-    }
-
-    /* Ocultar el botón de hamburguesa en desktop (ya hay sidebar) */
-    .app-header .header-left button:first-child {
-        display: none !important;
-    }
-
-    /* ===== CONTENIDO ===== */
+    /* Contenido centrado */
     .app-content {
-        max-width: 860px !important;
+        max-width: 900px !important;
         margin: 0 auto !important;
         padding: var(--spacing-xl) var(--spacing-2xl) !important;
-        padding-bottom: var(--spacing-2xl) !important;
+        padding-bottom: var(--spacing-xl) !important;
         width: 100%;
     }
 
     .fab { display: none !important; }
 
     /* ===== CARDS DESKTOP ===== */
-    .patrimony-card { padding: var(--spacing-xl) var(--spacing-2xl) !important; }
-    .patrimony-amount { font-size: 3.2rem !important; }
-    .patrimony-details {
-        grid-template-columns: repeat(4, 1fr) !important;
-        gap: var(--spacing-lg) !important;
-    }
+    .patrimony-amount { font-size: 3rem !important; }
+    .patrimony-details { grid-template-columns: repeat(4, 1fr) !important; }
 
     .quick-actions-grid {
         display: grid !important;
@@ -181,137 +115,21 @@
         gap: var(--spacing-lg) !important;
     }
 
-    .chart-wrapper { height: 320px !important; }
-
-    /* Period card en desktop */
+    .chart-wrapper { height: 350px !important; }
     .period-card { gap: var(--spacing-md) !important; }
 }
 
-/* ===== DESKTOP GRANDE (1024px+) ===== */
-@media (min-width: 1024px) {
-    :root { --nav-width: 240px; }
-
-    .bottom-nav {
-        padding: 0 !important;
-        align-items: stretch !important;
-        gap: 0 !important;
-    }
-
-    /* Logo en el sidebar */
-    .bottom-nav::before {
-        content: 'FinanzApp';
-        display: block !important;
-        padding: var(--spacing-xl) var(--spacing-lg);
-        font-size: 1.4rem;
-        font-weight: 900;
-        color: var(--accent-primary);
-        letter-spacing: -1px;
-        border-bottom: 1px solid var(--border-color);
-        margin-bottom: var(--spacing-md);
-        text-shadow: 0 0 20px rgba(202,253,10,0.3);
-    }
-
-    .nav-item {
-        flex-direction: row !important;
-        justify-content: flex-start !important;
-        padding: 13px var(--spacing-lg) !important;
-        gap: var(--spacing-md) !important;
-        border-radius: 0 !important;
-        margin: 1px var(--spacing-md) !important;
-        width: calc(100% - var(--spacing-xl)) !important;
-        border-radius: var(--border-radius-md) !important;
-    }
-
-    .nav-item i {
-        font-size: 1.1rem !important;
-        width: 20px;
-        text-align: center;
-    }
-
-    .nav-item span {
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
-        letter-spacing: 0 !important;
-    }
-
-    /* Indicador en desktop grande */
-    .nav-item.active {
-        background: rgba(202, 253, 10, 0.08) !important;
-        border: 1px solid rgba(202, 253, 10, 0.12) !important;
-    }
-
-    .nav-item.active::after {
-        right: var(--spacing-md) !important;
-        width: 6px !important;
-        height: 6px !important;
-        border-radius: 50% !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        box-shadow: 0 0 8px var(--accent-glow) !important;
-    }
-
-    /* Botón "+" en sidebar grande */
-    .nav-item.nav-add {
-        width: calc(100% - var(--spacing-xl)) !important;
-        height: 48px !important;
-        justify-content: center !important;
-        margin: var(--spacing-md) var(--spacing-md) var(--spacing-lg) !important;
-        border-radius: var(--border-radius-lg) !important;
-        order: -1;
-        gap: var(--spacing-sm) !important;
-    }
-
-    .nav-item.nav-add::after {
-        display: none !important;
-    }
-
-    .nav-item.nav-add::before {
-        content: 'Nueva Transacción' !important;
-        display: block !important;
-        position: static !important;
-        font-size: 0.85rem !important;
-        font-weight: 700 !important;
-        background: none !important;
-        width: auto !important;
-        height: auto !important;
-        transform: none !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        color: #000 !important;
-    }
-
-    .app-content {
-        max-width: 1000px !important;
-        padding: var(--spacing-xl) var(--spacing-2xl) !important;
-        padding-bottom: var(--spacing-xl) !important;
-    }
-
-    .chart-wrapper { height: 380px !important; }
-
-    .summary-cards,
-    .analysis-cards {
-        grid-template-columns: repeat(2, 1fr) !important;
-    }
+/* ===== DESKTOP GRANDE (1280px+) ===== */
+@media (min-width: 1280px) {
+    .app-content { max-width: 1000px !important; }
+    .chart-wrapper { height: 400px !important; }
 }
 
-/* ===== MONITOR ULTRA WIDE (1440px+) ===== */
-@media (min-width: 1440px) {
-    :root { --nav-width: 260px; }
-    .app-content { max-width: 1100px !important; }
-}
-
-/* ===== HOVER EFFECTS (solo dispositivos con mouse) ===== */
+/* ===== HOVER (solo mouse) ===== */
 @media (hover: hover) {
-    .nav-item:hover:not(.nav-add):not(.active) {
-        background: rgba(255,255,255,0.04) !important;
-        color: var(--text-secondary) !important;
-    }
-
-    .profile-menu-item:hover {
-        transform: translateX(2px);
-    }
-
-    .quick-action:hover .quick-action-icon {
-        box-shadow: var(--shadow-md) !important;
+    .profile-menu-item:hover { transform: translateX(2px); }
+    .sidebar-nav-item:hover {
+        background: rgba(202,253,10,0.06) !important;
+        color: var(--text-primary) !important;
     }
 }
