@@ -854,6 +854,7 @@ async function openSidebar() {
 }
 
 function closeSidebar() {
+    if (window.innerWidth >= 1024) return;
     const overlay = document.getElementById('sidebar-overlay');
     if (overlay) overlay.classList.remove('active');
 }
