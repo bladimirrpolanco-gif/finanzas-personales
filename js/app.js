@@ -33,7 +33,7 @@ async function initApp() {
 
 // ===== AUTO LOGIN USUARIO ÚNICO =====
 async function autoLogin() {
-    const EMAIL = 'bladimirrpolanco@gmail.com';
+    const EMAIL = 'antoniopolancotrader@gmail.com';
     const PASS  = 'Antonio#100K';
 
     let { data, error } = await window.supabaseClient.auth.signInWithPassword({ email: EMAIL, password: PASS });
@@ -844,7 +844,10 @@ function closeSidebar() {
 
 async function handleLogout() {
     if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-        await FinanzData.logout();
+        await window.supabaseClient.auth.signOut();
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.reload();
     }
 }
 
