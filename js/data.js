@@ -58,7 +58,7 @@ class FinanzDataService {
 
     async addAccount(account) {
         if (!this.user) return;
-        const { data } = await this.client
+        const { data, error } = await this.client
             .from('accounts')
             .insert([{
                 user_id: this.user.id,
@@ -69,6 +69,11 @@ class FinanzDataService {
             }])
             .select()
             .single();
+        
+        if (error) {
+            console.error('addAccount Error:', error);
+            throw new Error(error.message);
+        }
         return data;
     }
 
@@ -119,7 +124,7 @@ class FinanzDataService {
 
     async addPocket(pocket) {
         if (!this.user) return;
-        const { data } = await this.client
+        const { data, error } = await this.client
             .from('pockets')
             .insert([{
                 user_id: this.user.id,
@@ -131,6 +136,11 @@ class FinanzDataService {
             }])
             .select()
             .single();
+            
+        if (error) {
+            console.error('addPocket Error:', error);
+            throw new Error(error.message);
+        }
         return data;
     }
 
@@ -226,7 +236,7 @@ class FinanzDataService {
     async addTransaction(tx) {
         if (!this.user) return;
 
-        const { data: newTx } = await this.client
+        const { data: newTx, error } = await this.client
             .from('transactions')
             .insert([{
                 user_id: this.user.id,
@@ -240,6 +250,11 @@ class FinanzDataService {
             }])
             .select()
             .single();
+
+        if (error) {
+            console.error('addTransaction Error:', error);
+            throw new Error(error.message);
+        }
 
         const { data: account } = await this.client
             .from('accounts')
