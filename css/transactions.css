@@ -1,0 +1,484 @@
+/* ===================================
+   FinanzApp - Componentes Parte 2
+   Transacciones, Cuentas, Ahorros
+   =================================== */
+
+/* ===== LISTA DE TRANSACCIONES ===== */
+.transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.transaction-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.transaction-group-title {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    justify-content: space-between;
+}
+
+.transaction-group-amount {
+    font-weight: 600;
+}
+
+.transaction-group-amount.positive {
+    color: var(--success);
+}
+
+.transaction-group-amount.negative {
+    color: var(--danger);
+}
+
+.transaction-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.transaction-item:hover {
+    background: var(--bg-card-hover);
+    transform: translateX(4px);
+}
+
+.transaction-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.transaction-icon.food {
+    background: #FFF3E0;
+    color: #FF9800;
+}
+
+.transaction-icon.transport {
+    background: #E3F2FD;
+    color: #2196F3;
+}
+
+.transaction-icon.shopping {
+    background: #FCE4EC;
+    color: #E91E63;
+}
+
+.transaction-icon.entertainment {
+    background: #F3E5F5;
+    color: #9C27B0;
+}
+
+.transaction-icon.health {
+    background: #E8F5E9;
+    color: #4CAF50;
+}
+
+.transaction-icon.bills {
+    background: #FFEBEE;
+    color: #F44336;
+}
+
+.transaction-icon.income {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.transaction-icon.transfer {
+    background: var(--info-bg);
+    color: var(--info);
+}
+
+.transaction-icon.savings {
+    background: var(--accent-glow);
+    color: var(--accent-primary);
+}
+
+.transaction-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.transaction-title {
+    font-weight: 500;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.transaction-category {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.transaction-amount {
+    text-align: right;
+}
+
+.transaction-value {
+    font-weight: 600;
+    font-size: var(--font-size-base);
+}
+
+.transaction-value.income {
+    color: var(--success);
+}
+
+.transaction-value.expense {
+    color: var(--danger);
+}
+
+.transaction-time {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+/* ===== CUENTAS ===== */
+.accounts-summary {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-xl);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-lg);
+}
+
+.accounts-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-md);
+}
+
+.accounts-total-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.accounts-total-value {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+}
+
+.accounts-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--accent-glow);
+    color: var(--accent-primary);
+    border-radius: var(--border-radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+}
+
+.accounts-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.accounts-meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.accounts-meta-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+}
+
+.accounts-meta-icon.success {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.accounts-meta-icon.accent {
+    background: var(--accent-glow);
+    color: var(--accent-primary);
+}
+
+.accounts-meta-text {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.accounts-meta-value {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.accounts-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.accounts-list-title h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.accounts-list-title p {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.accounts-filters {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.filter-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border-color: var(--accent-primary);
+}
+
+.accounts-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.account-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.account-item:hover {
+    background: var(--bg-card-hover);
+}
+
+.account-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.account-icon.cash {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+.account-icon.nubank {
+    background: #8A05BE;
+    color: white;
+}
+
+.account-icon.nequi {
+    background: #E6007A;
+    color: white;
+}
+
+.account-icon.lulobank {
+    background: #00D9A5;
+    color: white;
+}
+
+.account-icon.default {
+    background: var(--bg-card-hover);
+    color: var(--text-secondary);
+}
+
+.account-info {
+    flex: 1;
+}
+
+.account-name {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.account-type {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.account-balance {
+    font-weight: 600;
+    font-size: var(--font-size-lg);
+}
+
+.account-menu {
+    color: var(--text-secondary);
+    padding: var(--spacing-sm);
+}
+
+/* ===== BOLSILLOS DE AHORRO ===== */
+.savings-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.savings-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.savings-total {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+}
+
+.savings-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.savings-list-header h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.savings-list-header span {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.savings-add-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--border-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+}
+
+.savings-add-btn:hover {
+    color: var(--accent-primary);
+}
+
+.savings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.savings-pocket {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.savings-pocket:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+}
+
+.savings-pocket-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.savings-pocket-icon.home {
+    background: #FFCDD2;
+    color: #E53935;
+}
+
+.savings-pocket-icon.travel {
+    background: #B3E5FC;
+    color: #0288D1;
+}
+
+.savings-pocket-icon.car {
+    background: #C8E6C9;
+    color: #43A047;
+}
+
+.savings-pocket-icon.default {
+    background: var(--accent-glow);
+    color: var(--accent-primary);
+}
+
+.savings-pocket-name {
+    font-weight: 500;
+    margin-bottom: var(--spacing-xs);
+}
+
+.savings-pocket-amount {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+}
+
+.savings-pocket-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.savings-progress {
+    height: 4px;
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-full);
+    overflow: hidden;
+}
+
+.savings-progress-bar {
+    height: 100%;
+    background: var(--gradient-accent);
+    border-radius: var(--border-radius-full);
+    transition: width var(--transition-slow);
+}
