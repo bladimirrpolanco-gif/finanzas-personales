@@ -861,12 +861,12 @@ function closeSidebar() {
 async function handleLogout() {
     closeSidebar();
     
-    // Pequeño timeout para permitir que el sidebar se cierre visualmente
+    // Mostramos un mensajito para dar feedback
+    showToast('Cerrando sesión...');
+    
     setTimeout(async () => {
-        if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-            await FinanzData.logout();
-        }
-    }, 100);
+        await FinanzData.logout();
+    }, 300);
 }
 
 async function openDepositModal(id, name) {
