@@ -190,11 +190,57 @@ class FinanzDataService {
 
     async deletePocket(id) {
         if (!this.user) return false;
-        const { error } = await this.client
-            .from('pockets')
-            .delete()
-            .eq('id', id);
-        return !error;
+
+        try {
+            // 1. Obtener la información del bolsillo antes de eliminarlo
+            const { data: pocket, error: fetchError } = await this.client
+                .from('pockets')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (fetchError || !pocket) {
+                console.error('Error fetching pocket before deletion:', fetchError);
+                return false;
+            }
+
+            const refundAmount = parseFloat(pocket.current_amount || 0);
+
+            // 2. Si el bolsillo tiene dinero ahorrado, devolverlo a una cuenta
+            if (refundAmount > 0) {
+                const { data: accounts } = await this.client
+                    .from('accounts')
+                    .select('*')
+                    .eq('user_id', this.user.id)
+                    .order('name');
+
+                if (accounts && accounts.length > 0) {
+                    // Devolver a la primera cuenta
+                    const targetAccount = accounts[0];
+
+                    // Crear transacción de reintegro (actualizará el saldo de la cuenta automáticamente)
+                    await this.addTransaction({
+                        accountId: targetAccount.id,
+                        type: 'income',
+                        category: 'Ahorro',
+                        title: `Reintegro: Bolsillo '${pocket.name}' eliminado`,
+                        amount: refundAmount,
+                        note: 'Reintegro automático por eliminación de bolsillo'
+                    });
+                }
+            }
+
+            // 3. Eliminar el bolsillo
+            const { error } = await this.client
+                .from('pockets')
+                .delete()
+                .eq('id', id);
+
+            return !error;
+        } catch (err) {
+            console.error('deletePocket Error:', err);
+            return false;
+        }
     }
 
     async resetUserData() {
@@ -274,6 +320,59 @@ class FinanzDataService {
         }
 
         return newTx;
+    }
+
+    async deleteTransaction(id) {
+        if (!this.user) return false;
+
+        try {
+            // 1. Obtener la transacción antes de eliminarla
+            const { data: tx, error: getError } = await this.client
+                .from('transactions')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (getError || !tx) {
+                console.error('Error fetching transaction before deletion:', getError);
+                return false;
+            }
+
+            // 2. Eliminar la transacción
+            const { error: deleteError } = await this.client
+                .from('transactions')
+                .delete()
+                .eq('id', id);
+
+            if (deleteError) {
+                console.error('Error deleting transaction:', deleteError);
+                return false;
+            }
+
+            // 3. Revertir el saldo de la cuenta
+            const { data: account } = await this.client
+                .from('accounts')
+                .select('balance')
+                .eq('id', tx.account_id)
+                .single();
+
+            if (account) {
+                const amount = parseFloat(tx.amount);
+                const newBalance = tx.type === 'income'
+                    ? parseFloat(account.balance) - amount
+                    : parseFloat(account.balance) + amount;
+
+                await this.client
+                    .from('accounts')
+                    .update({ balance: newBalance })
+                    .eq('id', tx.account_id);
+            }
+
+            return true;
+        } catch (err) {
+            console.error('deleteTransaction Error:', err);
+            return false;
+        }
     }
 
     async getChartData(type, period) {
@@ -368,7 +467,14 @@ class FinanzDataService {
     }
 
     async logout() {
-        await this.client.auth.signOut();
+        try {
+            await this.client.auth.signOut();
+        } catch (e) {
+            console.error('Logout error:', e);
+        }
+        // Limpiar todo el almacenamiento local para forzar el cierre de sesión en el cliente
+        localStorage.clear();
+        sessionStorage.clear();
         window.location.reload();
     }
 }

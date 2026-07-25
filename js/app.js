@@ -312,16 +312,23 @@ async function renderTransactions() {
     }
 
     list.innerHTML = txs.map(t => `
-        <div class="transaction-item animate-fade-in">
-            <div class="transaction-icon ${t.type === 'income' ? 'bg-success' : 'bg-danger'}">
-                <i class="fas fa-${t.type === 'income' ? 'arrow-up' : 'arrow-down'}"></i>
+        <div class="transaction-item animate-fade-in" style="display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md);">
+            <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; min-width: 0;">
+                <div class="transaction-icon ${t.type === 'income' ? 'bg-success' : 'bg-danger'}">
+                    <i class="fas fa-${t.type === 'income' ? 'arrow-up' : 'arrow-down'}"></i>
+                </div>
+                <div class="transaction-info" style="flex: 1; min-width: 0;">
+                    <div class="transaction-title">${t.title}</div>
+                    <div class="transaction-category">${t.category}</div>
+                </div>
             </div>
-            <div class="transaction-info">
-                <div class="transaction-title">${t.title}</div>
-                <div class="transaction-category">${t.category}</div>
-            </div>
-            <div class="transaction-amount ${t.type === 'income' ? 'text-success' : 'text-danger'}">
-                ${t.type === 'income' ? '+' : '-'}${FinanzUtils.formatCurrency(t.amount)}
+            <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0;">
+                <div class="transaction-amount ${t.type === 'income' ? 'text-success' : 'text-danger'}" style="font-weight: 600;">
+                    ${t.type === 'income' ? '+' : '-'}${FinanzUtils.formatCurrency(t.amount)}
+                </div>
+                <button onclick="event.stopPropagation(); handleDeleteTransaction('${t.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 5px; font-size: 0.95rem; transition: color 0.2s;" onmouseover="this.style.color='#ff4444'" onmouseout="this.style.color='var(--text-muted)'">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
             </div>
         </div>
     `).join('');
@@ -643,15 +650,34 @@ async function renderPocketsList() {
 }
 
 async function handleDeletePocket(id) {
-    if (confirm('¿Estás seguro de que quieres eliminar este bolsillo? El historial de depósitos se mantendrá como transacciones.')) {
+    if (confirm('¿Estás seguro de que quieres eliminar este bolsillo? Si tiene dinero ahorrado, se devolverá automáticamente a tu primera cuenta.')) {
         try {
             await FinanzData.deletePocket(id);
-            showToast('Bolsillo eliminado');
+            showToast('Bolsillo eliminado e historial actualizado');
             await renderPocketsList();
             await renderDashboardPockets();
+            await renderDashboard(); // Refresca saldos en el Dashboard
         } catch (err) {
             console.error(err);
             showToast('Error al eliminar', 'error');
+        }
+    }
+}
+
+async function handleDeleteTransaction(id) {
+    if (confirm('¿Estás seguro de que quieres eliminar esta transacción? El saldo de la cuenta se ajustará automáticamente.')) {
+        try {
+            const success = await FinanzData.deleteTransaction(id);
+            if (success) {
+                showToast('Transacción eliminada');
+                // Recargar datos globales y de la vista actual
+                await navigateTo(currentPage);
+            } else {
+                throw new Error('No se pudo completar la eliminación');
+            }
+        } catch (err) {
+            console.error('Delete Transaction Error:', err);
+            showToast('Error al eliminar: ' + err.message, 'error');
         }
     }
 }
@@ -833,9 +859,14 @@ function closeSidebar() {
 }
 
 async function handleLogout() {
-    if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-        await FinanzData.logout();
-    }
+    closeSidebar();
+    
+    // Pequeño timeout para permitir que el sidebar se cierre visualmente
+    setTimeout(async () => {
+        if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+            await FinanzData.logout();
+        }
+    }, 100);
 }
 
 async function openDepositModal(id, name) {
@@ -895,6 +926,7 @@ async function savePocketDeposit(e) {
 window.openDepositModal = openDepositModal;
 window.savePocketDeposit = savePocketDeposit;
 window.handleDeletePocket = handleDeletePocket;
+window.handleDeleteTransaction = handleDeleteTransaction;
 window.resetData = resetData;
 window.handleAuth = handleAuth;
 window.navigateTo = navigateTo;
