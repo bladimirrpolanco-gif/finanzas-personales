@@ -3,7 +3,7 @@
  * Permite funcionamiento offline y cacheo de recursos
  */
 
-const CACHE_NAME = 'finanzapp-v5';
+const CACHE_NAME = 'finanzapp-v6';
 const STATIC_CACHE = 'finanzapp-static-v5';
 const DYNAMIC_CACHE = 'finanzapp-dynamic-v5';
 

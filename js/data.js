@@ -472,6 +472,11 @@ class FinanzDataService {
         } catch (e) {
             console.error('Logout error:', e);
         }
+
+        // Evitar auto-submit de gestores de contraseñas de Android
+        window.isLoggingOut = true;
+        setTimeout(() => window.isLoggingOut = false, 2000);
+        
         // Limpiar todo el almacenamiento local para forzar el cierre de sesión en el cliente
         localStorage.clear();
         sessionStorage.clear();

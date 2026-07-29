@@ -29,13 +29,15 @@ async function initApp() {
     }
 
     setupNavigation();
-    setupModals();
+    // setupModals(); // Eliminado para evitar ReferenceError
     handleUrlParams();
 }
 
 // ===== AUTENTICACIÓN =====
 async function handleAuth(e) {
     if (e) e.preventDefault();
+    if (window.isLoggingOut) return; // Prevenir auto-submit de gestores de contraseñas
+
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
     const btn = document.getElementById('auth-submit');
