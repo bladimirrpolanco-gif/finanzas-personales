@@ -475,7 +475,17 @@ class FinanzDataService {
         // Limpiar todo el almacenamiento local para forzar el cierre de sesión en el cliente
         localStorage.clear();
         sessionStorage.clear();
-        window.location.reload();
+        
+        this.user = null;
+        
+        // Volver a mostrar la pantalla de login sin recargar la página (evita que la app móvil se cierre o vaya 'atrás')
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) overlay.classList.add('active');
+        
+        const emailInput = document.getElementById('auth-email');
+        const passInput = document.getElementById('auth-password');
+        if (emailInput) emailInput.value = '';
+        if (passInput) passInput.value = '';
     }
 }
 

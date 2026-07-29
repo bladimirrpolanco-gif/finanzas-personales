@@ -22,11 +22,10 @@ async function initApp() {
         updateUserProfileUI();
         await navigateTo('dashboard');
     } else {
-        // Pre-fill for Bladimir if on auth screen
         const emailInput = document.getElementById('auth-email');
         const passInput = document.getElementById('auth-password');
-        if (emailInput) emailInput.value = 'bladimirrpolanco@gmail.com';
-        if (passInput) passInput.value = '123456';
+        if (emailInput) emailInput.value = '';
+        if (passInput) passInput.value = '';
     }
 
     setupNavigation();
