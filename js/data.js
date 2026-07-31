@@ -2,6 +2,10 @@
  * FinanzApp - Data Layer (Supabase Cloud)
  */
 
+/**
+ * FinanzApp - Data Layer (Supabase Cloud)
+ */
+
 class FinanzDataService {
     constructor() {
         this.client = window.supabaseClient;
@@ -9,6 +13,16 @@ class FinanzDataService {
     }
 
     async init() {
+        // Si venimos de un logout forzado, cerrar sesión en Supabase también
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('loggedout') === '1') {
+            try { await this.client.auth.signOut(); } catch(e) {}
+            // Limpiar el parámetro de la URL sin recargar
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+            this.user = null;
+            return false;
+        }
         const { data: { user } } = await this.client.auth.getUser();
         this.user = user;
         return !!user;
@@ -467,28 +481,24 @@ class FinanzDataService {
     }
 
     async logout() {
+        // Limpiar almacenamiento local primero
+        localStorage.clear();
+        sessionStorage.clear();
+
         try {
-            await this.client.auth.signOut();
+            // Intentar cerrar sesión en Supabase (scope global para todos los dispositivos)
+            await this.client.auth.signOut({ scope: 'global' });
         } catch (e) {
             console.error('Logout error:', e);
         }
 
         this.user = null;
-        
-        // Limpiar almacenamiento
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Ocultar toda la app para evitar que "vuelva para atras" a una sesión rota
-        document.body.innerHTML = `
-            <div style="height: 100vh; width: 100vw; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1A1A1A; color: white; padding: 20px; text-align: center; font-family: sans-serif;">
-                <h2 style="color: #CAFD0A; margin-bottom: 20px; font-size: 24px;">Sesión Cerrada Exitosamente</h2>
-                <p style="margin-bottom: 30px; color: #aaa;">Has salido de tu cuenta de forma segura.</p>
-                <button onclick="window.location.replace(window.location.pathname)" style="background: #CAFD0A; color: black; border: none; padding: 15px 30px; font-size: 16px; border-radius: 8px; font-weight: bold; cursor: pointer;">
-                    Iniciar Nueva Sesión
-                </button>
-            </div>
-        `;
+
+        // SOLUCIÓN DEFINITIVA: Redirigir con parámetro ?loggedout=1 + timestamp
+        // El timestamp hace que el browser no pueda usar caché y la URL nueva
+        // hace que el Service Worker trate esto como una visita fresca.
+        // replace() elimina esta entrada del historial, así el botón atrás no regresa aquí.
+        window.location.replace(window.location.pathname + '?loggedout=1&t=' + Date.now());
     }
 }
 
