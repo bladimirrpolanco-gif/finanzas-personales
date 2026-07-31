@@ -473,24 +473,22 @@ class FinanzDataService {
             console.error('Logout error:', e);
         }
 
-        // Evitar auto-submit de gestores de contraseñas de Android
-        window.isLoggingOut = true;
-        setTimeout(() => window.isLoggingOut = false, 2000);
+        this.user = null;
         
-        // Limpiar todo el almacenamiento local para forzar el cierre de sesión en el cliente
+        // Limpiar almacenamiento
         localStorage.clear();
         sessionStorage.clear();
         
-        this.user = null;
-        
-        // Volver a mostrar la pantalla de login sin recargar la página (evita que la app móvil se cierre o vaya 'atrás')
-        const overlay = document.getElementById('auth-overlay');
-        if (overlay) overlay.classList.add('active');
-        
-        const emailInput = document.getElementById('auth-email');
-        const passInput = document.getElementById('auth-password');
-        if (emailInput) emailInput.value = '';
-        if (passInput) passInput.value = '';
+        // Ocultar toda la app para evitar que "vuelva para atras" a una sesión rota
+        document.body.innerHTML = `
+            <div style="height: 100vh; width: 100vw; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1A1A1A; color: white; padding: 20px; text-align: center; font-family: sans-serif;">
+                <h2 style="color: #CAFD0A; margin-bottom: 20px; font-size: 24px;">Sesión Cerrada Exitosamente</h2>
+                <p style="margin-bottom: 30px; color: #aaa;">Has salido de tu cuenta de forma segura.</p>
+                <button onclick="window.location.replace(window.location.pathname)" style="background: #CAFD0A; color: black; border: none; padding: 15px 30px; font-size: 16px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                    Iniciar Nueva Sesión
+                </button>
+            </div>
+        `;
     }
 }
 
