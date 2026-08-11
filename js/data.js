@@ -1,8 +1,4 @@
-/**
- * FinanzApp - Data Layer (Supabase Cloud)
- */
-
-/**
+﻿/**
  * FinanzApp - Data Layer (Supabase Cloud)
  */
 
@@ -13,22 +9,29 @@ class FinanzDataService {
     }
 
     async init() {
-        // Si venimos de un logout forzado, cerrar sesión en Supabase también
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('loggedout') === '1') {
-            try { await this.client.auth.signOut(); } catch(e) {}
-            // Limpiar el parámetro de la URL sin recargar
+            try {
+                await this.client.auth.signOut();
+            } catch (e) {}
             const cleanUrl = window.location.pathname;
             window.history.replaceState({}, document.title, cleanUrl);
             this.user = null;
             return false;
         }
+
+        const { data: { session } } = await this.client.auth.getSession();
+
+        if (session?.user) {
+            this.user = session.user;
+            return true;
+        }
+
         const { data: { user } } = await this.client.auth.getUser();
         this.user = user;
         return !!user;
     }
-
-    // ===== PROFILE & SETTINGS =====
+// ===== PROFILE & SETTINGS =====
     async getSettings() {
         if (!this.user) return { monthlyBudget: 0, dailyGoal: 0, currency: 'DOP' };
         const { data } = await this.client
@@ -104,7 +107,7 @@ class FinanzDataService {
             throw new Error('Saldo insuficiente en la cuenta de origen');
         }
 
-        // 2. Registrar transacción de transferencia (addTransaction descontará de origen y sumará a destino automáticamente)
+        // 2. Registrar transacciÃ³n de transferencia (addTransaction descontarÃ¡ de origen y sumarÃ¡ a destino automÃ¡ticamente)
         await this.addTransaction({
             accountId: fromId,
             type: 'expense',
@@ -170,7 +173,7 @@ class FinanzDataService {
 
         if (!pocket) return false;
 
-        // 2. Si hay cuenta de origen, validar saldo y crear transacción (addTransaction restará saldo automáticamente)
+        // 2. Si hay cuenta de origen, validar saldo y crear transacciÃ³n (addTransaction restarÃ¡ saldo automÃ¡ticamente)
         if (fromAccountId) {
             const { data: account } = await this.client
                 .from('accounts')
@@ -187,7 +190,7 @@ class FinanzDataService {
                     category: 'Ahorro',
                     title: `Ahorro para ${pocket.name}`,
                     amount: amount,
-                    note: 'Depósito a bolsillo'
+                    note: 'DepÃ³sito a bolsillo'
                 });
             }
         }
@@ -206,7 +209,7 @@ class FinanzDataService {
         if (!this.user) return false;
 
         try {
-            // 1. Obtener la información del bolsillo antes de eliminarlo
+            // 1. Obtener la informaciÃ³n del bolsillo antes de eliminarlo
             const { data: pocket, error: fetchError } = await this.client
                 .from('pockets')
                 .select('*')
@@ -232,14 +235,14 @@ class FinanzDataService {
                     // Devolver a la primera cuenta
                     const targetAccount = accounts[0];
 
-                    // Crear transacción de reintegro (actualizará el saldo de la cuenta automáticamente)
+                    // Crear transacciÃ³n de reintegro (actualizarÃ¡ el saldo de la cuenta automÃ¡ticamente)
                     await this.addTransaction({
                         accountId: targetAccount.id,
                         type: 'income',
                         category: 'Ahorro',
                         title: `Reintegro: Bolsillo '${pocket.name}' eliminado`,
                         amount: refundAmount,
-                        note: 'Reintegro automático por eliminación de bolsillo'
+                        note: 'Reintegro automÃ¡tico por eliminaciÃ³n de bolsillo'
                     });
                 }
             }
@@ -340,7 +343,7 @@ class FinanzDataService {
         if (!this.user) return false;
 
         try {
-            // 1. Obtener la transacción antes de eliminarla
+            // 1. Obtener la transacciÃ³n antes de eliminarla
             const { data: tx, error: getError } = await this.client
                 .from('transactions')
                 .select('*')
@@ -352,7 +355,7 @@ class FinanzDataService {
                 return false;
             }
 
-            // 2. Eliminar la transacción
+            // 2. Eliminar la transacciÃ³n
             const { error: deleteError } = await this.client
                 .from('transactions')
                 .delete()
@@ -486,7 +489,7 @@ class FinanzDataService {
         sessionStorage.clear();
 
         try {
-            // Intentar cerrar sesión en Supabase (scope global para todos los dispositivos)
+            // Intentar cerrar sesiÃ³n en Supabase (scope global para todos los dispositivos)
             await this.client.auth.signOut({ scope: 'global' });
         } catch (e) {
             console.error('Logout error:', e);
@@ -494,12 +497,13 @@ class FinanzDataService {
 
         this.user = null;
 
-        // SOLUCIÓN DEFINITIVA: Redirigir con parámetro ?loggedout=1 + timestamp
-        // El timestamp hace que el browser no pueda usar caché y la URL nueva
+        // SOLUCIÃ“N DEFINITIVA: Redirigir con parÃ¡metro ?loggedout=1 + timestamp
+        // El timestamp hace que el browser no pueda usar cachÃ© y la URL nueva
         // hace que el Service Worker trate esto como una visita fresca.
-        // replace() elimina esta entrada del historial, así el botón atrás no regresa aquí.
+        // replace() elimina esta entrada del historial, asÃ­ el botÃ³n atrÃ¡s no regresa aquÃ­.
         window.location.replace(window.location.pathname + '?loggedout=1&t=' + Date.now());
     }
 }
 
 window.FinanzData = new FinanzDataService();
+

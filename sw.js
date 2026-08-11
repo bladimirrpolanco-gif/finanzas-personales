@@ -88,9 +88,15 @@ self.addEventListener('fetch', (event) => {
     // Ignorar peticiones que no sean GET
     if (request.method !== 'GET') return;
 
-    // Estrategia: Cache First para assets estáticos
+    // HTML y navegación: siempre intentar red primero para evitar servir una app vieja
+    if (isNavigationRequest(request)) {
+        event.respondWith(networkFirst(request));
+        return;
+    }
+
+    // Estrategia: Stale While Revalidate para assets estáticos versionables
     if (isStaticAsset(url)) {
-        event.respondWith(cacheFirst(request));
+        event.respondWith(staleWhileRevalidate(request));
         return;
     }
 
@@ -115,28 +121,17 @@ function isStaticAsset(url) {
             url.pathname.endsWith('.svg'));
 }
 
+function isNavigationRequest(request) {
+    return request.mode === 'navigate' ||
+        (request.destination === 'document') ||
+        (request.headers.get('accept') || '').includes('text/html');
+}
+
 // Verificar si es CDN
 function isCDNAsset(url) {
     return url.origin.includes('googleapis.com') ||
         url.origin.includes('cloudflare.com') ||
         url.origin.includes('jsdelivr.net');
-}
-
-// Estrategia: Cache First
-async function cacheFirst(request) {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-        return cachedResponse;
-    }
-
-    try {
-        const networkResponse = await fetch(request);
-        const cache = await caches.open(STATIC_CACHE);
-        cache.put(request, networkResponse.clone());
-        return networkResponse;
-    } catch (error) {
-        return new Response('Offline', { status: 503 });
-    }
 }
 
 // Estrategia: Network First

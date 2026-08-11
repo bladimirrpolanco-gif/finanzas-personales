@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FinanzApp - Main App (Supabase Version)
  * All buttons and forms wired to Supabase
  */
@@ -8,6 +8,7 @@ let currentFilter = '30days';
 let currentTransactionType = 'all';
 let currentAnalysisType = 'expense';
 let currentCategoryType = 'expense';
+let authListenerReady = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
@@ -15,13 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initApp() {
     const isLoggedIn = await FinanzData.init();
+    setupAuthStateListener();
 
     if (isLoggedIn) {
-        const overlay = document.getElementById('auth-overlay');
-        if (overlay) overlay.classList.remove('active');
+        hideAuthOverlay();
         updateUserProfileUI();
         await navigateTo('dashboard');
     } else {
+        showAuthOverlay();
         const emailInput = document.getElementById('auth-email');
         const passInput = document.getElementById('auth-password');
         if (emailInput) emailInput.value = '';
@@ -31,12 +33,67 @@ async function initApp() {
     setupNavigation();
     // setupModals(); // Eliminado para evitar ReferenceError
     handleUrlParams();
+    setupDesktopSidebar();
+    if (isLoggedIn) checkBudgetAlerts();
 }
 
-// ===== AUTENTICACIÓN =====
+function setupAuthStateListener() {
+    if (authListenerReady) return;
+    authListenerReady = true;
+
+    window.supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+        FinanzData.user = session?.user || null;
+
+        if (session?.user) {
+            hideAuthOverlay();
+            await FinanzData.init();
+            updateUserProfileUI();
+            await navigateTo('dashboard');
+            checkBudgetAlerts();
+            return;
+        }
+
+        showAuthOverlay();
+    });
+}
+
+function showAuthOverlay() {
+    const overlay = document.getElementById('auth-overlay');
+    if (overlay) overlay.classList.add('active');
+}
+
+function hideAuthOverlay() {
+    const overlay = document.getElementById('auth-overlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
+function setupDesktopSidebar() {
+    const nameEl = document.getElementById('ds-user-name');
+    const emailEl = document.getElementById('ds-user-email');
+    if (nameEl && FinanzData.user) {
+        const email = FinanzData.user.email || '';
+        nameEl.textContent = email.split('@')[0] || 'Usuario';
+        emailEl.textContent = email;
+    }
+    updateDesktopSidebarActive();
+}
+
+function updateDesktopSidebarActive() {
+    document.querySelectorAll('#desktop-sidebar .ds-item').forEach(item => {
+        item.classList.remove('ds-active');
+    });
+    const items = document.querySelectorAll('#desktop-sidebar .ds-item');
+    items.forEach(item => {
+        const onclick = item.getAttribute('onclick') || '';
+        if (onclick.includes(`'${currentPage}'`)) {
+            item.classList.add('ds-active');
+        }
+    });
+}
+// ===== AUTENTICACIÃ“N =====
 async function handleAuth(e) {
     if (e) e.preventDefault();
-    if (window.isLoggingOut) return; // Prevenir auto-submit de gestores de contraseñas
+    if (window.isLoggingOut) return; // Prevenir auto-submit de gestores de contraseÃ±as
 
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
@@ -54,9 +111,9 @@ async function handleAuth(e) {
         let { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
 
         if (error) {
-            // Manejar específicamente el límite de velocidad
+            // Manejar especÃ­ficamente el lÃ­mite de velocidad
             if (error.status === 429) {
-                throw new Error('Límite de intentos excedido. Por favor, espera unos minutos antes de intentar de nuevo.');
+                throw new Error('LÃ­mite de intentos excedido. Por favor, espera unos minutos antes de intentar de nuevo.');
             }
 
             // Si el usuario no existe, intentar registro (solo una vez)
@@ -76,9 +133,8 @@ async function handleAuth(e) {
         }
 
         if (data?.user) {
-            const overlay = document.getElementById('auth-overlay');
-            if (overlay) overlay.classList.remove('active');
-            showToast('¡Bienvenido!');
+            hideAuthOverlay();
+            showToast('Â¡Bienvenido!');
             await FinanzData.init();
             updateUserProfileUI();
             await navigateTo('dashboard');
@@ -97,7 +153,7 @@ async function handleAuth(e) {
     }
 }
 
-// ===== NAVEGACIÓN =====
+// ===== NAVEGACIÃ“N =====
 function setupNavigation() {
     document.querySelectorAll('.nav-item[data-page]').forEach(n => {
         n.onclick = async () => await navigateTo(n.dataset.page);
@@ -190,7 +246,7 @@ async function renderDashboard() {
         // Update days text
         const dailyMetaEl = dailyAvgEl.parentElement.querySelector('.summary-card-meta');
         if (dailyMetaEl && stats.days) {
-            dailyMetaEl.textContent = `${stats.days} días transcurridos`;
+            dailyMetaEl.textContent = `${stats.days} dÃ­as transcurridos`;
         }
     }
 
@@ -255,7 +311,7 @@ async function renderDashboardPockets() {
             </div>
         `;
     } else {
-        // Añadir tarjeta de "Crear Nuevo" al principio
+        // AÃ±adir tarjeta de "Crear Nuevo" al principio
         let html = `
             <div onclick="openModal('modal-add-pocket')" style="background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: var(--border-radius-lg); padding: 1rem; min-width: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
                 <i class="fas fa-plus" style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 0.5rem;"></i>
@@ -308,7 +364,7 @@ async function renderTransactions() {
     if (expenseEl) expenseEl.textContent = FinanzUtils.formatCurrency(stats.expense);
 
     if (txs.length === 0) {
-        list.innerHTML = '<div class="empty-state animate-fade-in"><p>No hay movimientos aún.</p></div>';
+        list.innerHTML = '<div class="empty-state animate-fade-in"><p>No hay movimientos aÃºn.</p></div>';
         return;
     }
 
@@ -358,7 +414,7 @@ async function renderAnalysis() {
     const countEl = document.getElementById('analysis-count');
     if (countEl) countEl.textContent = `${stats.transactionCount} transacciones`;
 
-    // Actualizar Gráfica
+    // Actualizar GrÃ¡fica
     await refreshAnalysisChart();
 }
 
@@ -368,7 +424,7 @@ async function refreshAnalysisChart() {
         'today': 'Hoy',
         'yesterday': 'Ayer',
         'week': 'Esta Semana',
-        '30days': 'Últimos 30 Días'
+        '30days': 'Ãšltimos 30 DÃ­as'
     }[currentFilter];
 
     if (currentAnalysisType === 'budget') {
@@ -379,7 +435,7 @@ async function refreshAnalysisChart() {
             spent: stats.expense
         });
     } else if (currentAnalysisType === 'categories') {
-        if (chartTitle) chartTitle.textContent = `Distribución por Categorías (${periodName})`;
+        if (chartTitle) chartTitle.textContent = `DistribuciÃ³n por CategorÃ­as (${periodName})`;
         const chartData = await FinanzData.getCategoryStats('expense', currentFilter);
         FinanzCharts.createCategoryChart('expense-chart', {
             labels: chartData.map(c => c.name),
@@ -500,10 +556,10 @@ async function saveTransaction(e) {
         const result = await FinanzData.addTransaction(tx);
         if (result) {
             closeModal('modal-add-transaction');
-            showToast('¡Movimiento guardado!');
+            showToast('Â¡Movimiento guardado!');
             await navigateTo(currentPage);
         } else {
-            throw new Error('No se pudo guardar la transacción');
+            throw new Error('No se pudo guardar la transacciÃ³n');
         }
     } catch (err) {
         console.error('Save Transaction Error:', err);
@@ -528,7 +584,7 @@ async function saveAccount(e) {
         const result = await FinanzData.addAccount(acc);
         if (result) {
             closeModal('modal-add-account');
-            showToast('¡Cuenta creada con éxito!');
+            showToast('Â¡Cuenta creada con Ã©xito!');
             await navigateTo(currentPage);
         } else {
             throw new Error('No se pudo crear la cuenta');
@@ -651,7 +707,7 @@ async function renderPocketsList() {
 }
 
 async function handleDeletePocket(id) {
-    if (confirm('¿Estás seguro de que quieres eliminar este bolsillo? Si tiene dinero ahorrado, se devolverá automáticamente a tu primera cuenta.')) {
+    if (confirm('Â¿EstÃ¡s seguro de que quieres eliminar este bolsillo? Si tiene dinero ahorrado, se devolverÃ¡ automÃ¡ticamente a tu primera cuenta.')) {
         try {
             await FinanzData.deletePocket(id);
             showToast('Bolsillo eliminado e historial actualizado');
@@ -666,15 +722,15 @@ async function handleDeletePocket(id) {
 }
 
 async function handleDeleteTransaction(id) {
-    if (confirm('¿Estás seguro de que quieres eliminar esta transacción? El saldo de la cuenta se ajustará automáticamente.')) {
+    if (confirm('Â¿EstÃ¡s seguro de que quieres eliminar esta transacciÃ³n? El saldo de la cuenta se ajustarÃ¡ automÃ¡ticamente.')) {
         try {
             const success = await FinanzData.deleteTransaction(id);
             if (success) {
-                showToast('Transacción eliminada');
+                showToast('TransacciÃ³n eliminada');
                 // Recargar datos globales y de la vista actual
                 await navigateTo(currentPage);
             } else {
-                throw new Error('No se pudo completar la eliminación');
+                throw new Error('No se pudo completar la eliminaciÃ³n');
             }
         } catch (err) {
             console.error('Delete Transaction Error:', err);
@@ -684,12 +740,12 @@ async function handleDeleteTransaction(id) {
 }
 
 async function resetData() {
-    if (confirm('⚠️ ¿Estás seguro de que quieres borrar TODOS los datos? Esta acción eliminará todas tus transacciones, cuentas y bolsillos. NO se puede deshacer.')) {
-        if (confirm('⚠️⚠️ ULTIMA ADVERTENCIA: Se borrará toda tu información financiera. ¿Confirmas el borrado total?')) {
+    if (confirm('âš ï¸ Â¿EstÃ¡s seguro de que quieres borrar TODOS los datos? Esta acciÃ³n eliminarÃ¡ todas tus transacciones, cuentas y bolsillos. NO se puede deshacer.')) {
+        if (confirm('âš ï¸âš ï¸ ULTIMA ADVERTENCIA: Se borrarÃ¡ toda tu informaciÃ³n financiera. Â¿Confirmas el borrado total?')) {
             try {
                 const success = await FinanzData.resetUserData();
                 if (success) {
-                    alert('Todos los datos han sido eliminados. La aplicación se reiniciará.');
+                    alert('Todos los datos han sido eliminados. La aplicaciÃ³n se reiniciarÃ¡.');
                     window.location.reload();
                 } else {
                     throw new Error('No se pudo completar el borrado');
@@ -745,7 +801,7 @@ async function assistantQuickAction(action) {
 
     let response = "";
     switch (action) {
-        case 'analyze': response = "Analizando tus gastos... Veo que tu mayor gasto este mes es en Comida. ¡Podrías ahorrar RD$2,000 si reduces las salidas!"; break;
+        case 'analyze': response = "Analizando tus gastos... Veo que tu mayor gasto este mes es en Comida. Â¡PodrÃ­as ahorrar RD$2,000 si reduces las salidas!"; break;
         case 'add': closeModal('modal-assistant'); openAddTransaction('expense'); return;
         case 'budget': response = `Tu presupuesto mensual es de ${FinanzUtils.formatCurrency((await FinanzData.getSettings()).monthlyBudget)}. Te quedan ${FinanzUtils.formatCurrency((await FinanzData.getDashboardStats()).budgetRemaining)} para el resto del mes.`; break;
         case 'save': response = "Un consejo: Intenta la regla del 50/30/20. 50% Necesidades, 30% Deseos y 20% Ahorro."; break;
@@ -763,7 +819,7 @@ function sendAssistantMessage() {
     input.value = "";
 
     setTimeout(() => {
-        addChatMessage("¡Entendido! Estoy procesando tu solicitud...", 'bot');
+        addChatMessage("Â¡Entendido! Estoy procesando tu solicitud...", 'bot');
     }, 500);
 }
 
@@ -789,7 +845,7 @@ async function setFilter(filter) {
         tab.classList.toggle('active', tab.dataset.filter === filter);
     });
 
-    // Recargar datos de la página actual
+    // Recargar datos de la pÃ¡gina actual
     if (currentPage === 'transactions') await renderTransactions();
     if (currentPage === 'analysis') await renderAnalysis();
 }
@@ -861,10 +917,10 @@ function closeSidebar() {
 
 async function handleLogout() {
     closeSidebar();
-    
+
     // Mostramos un mensajito para dar feedback
     showToast('Cerrando sesión...');
-    
+
     setTimeout(async () => {
         await FinanzData.logout();
     }, 300);
@@ -898,7 +954,7 @@ async function savePocketDeposit(e) {
     const fromAccountId = document.getElementById('deposit-from-account').value;
 
     if (!amount || amount <= 0) {
-        showToast('Ingresa un monto válido', 'error');
+        showToast('Ingresa un monto vÃ¡lido', 'error');
         return;
     }
 
@@ -906,7 +962,7 @@ async function savePocketDeposit(e) {
         const success = await FinanzData.depositToPocket(pocketId, amount, fromAccountId || null);
         if (success) {
             closeModal('modal-deposit-pocket');
-            showToast('¡Ahorro guardado!');
+            showToast('Â¡Ahorro guardado!');
             await renderDashboardPockets();
             if (typeof renderPocketsList === 'function') await renderPocketsList();
 
@@ -954,3 +1010,5 @@ window.toggleSidebar = toggleSidebar;
 window.openSidebar = openSidebar;
 window.closeSidebar = closeSidebar;
 window.handleLogout = handleLogout;
+
+
