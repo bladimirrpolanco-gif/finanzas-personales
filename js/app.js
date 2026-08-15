@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
+    setupAuthUi();
     const isLoggedIn = await FinanzData.init();
     setupAuthStateListener();
 
@@ -45,8 +46,14 @@ function setupAuthStateListener() {
         FinanzData.user = session?.user || null;
 
         if (session?.user) {
+            const allowed = await FinanzData.init();
+            if (!allowed) {
+                showAuthOverlay();
+                showAuthError(FinanzData.lastAccessError || 'Tu cuenta no está autorizada para usar esta app.');
+                return;
+            }
+
             hideAuthOverlay();
-            await FinanzData.init();
             updateUserProfileUI();
             await navigateTo('dashboard');
             checkBudgetAlerts();
@@ -65,6 +72,26 @@ function showAuthOverlay() {
 function hideAuthOverlay() {
     const overlay = document.getElementById('auth-overlay');
     if (overlay) overlay.classList.remove('active');
+}
+
+function showAuthError(message) {
+    const errorEl = document.getElementById('auth-error');
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.style.display = 'block';
+    }
+}
+
+function setupAuthUi() {
+    const btn = document.getElementById('auth-submit');
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
+    }
+
+    const info = document.querySelector('#auth-overlay .mt-lg p');
+    if (info) {
+        info.textContent = 'Solo los usuarios autorizados por el administrador pueden entrar.';
+    }
 }
 
 function setupDesktopSidebar() {
@@ -108,7 +135,7 @@ async function handleAuth(e) {
     if (errorEl) errorEl.style.display = 'none';
 
     try {
-        let { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
 
         if (error) {
             // Manejar especÃ­ficamente el lÃ­mite de velocidad
@@ -116,26 +143,24 @@ async function handleAuth(e) {
                 throw new Error('LÃ­mite de intentos excedido. Por favor, espera unos minutos antes de intentar de nuevo.');
             }
 
-            // Si el usuario no existe, intentar registro (solo una vez)
             if (error.status === 400 && (error.message.includes('Invalid login credentials') || error.message.includes('User not found'))) {
-                const { data: sData, error: sError } = await window.supabaseClient.auth.signUp({ email, password });
-
-                if (sError) {
-                    if (sError.status === 429) {
-                        throw new Error('Supabase ha limitado los correos temporalmente. Espera 10-15 minutos.');
-                    }
-                    throw sError;
-                }
-                data = sData;
-            } else {
-                throw error;
+                throw new Error('Usuario no autorizado o credenciales incorrectas.');
             }
+
+            throw error;
         }
 
         if (data?.user) {
+            const allowed = await FinanzData.init();
+            if (!allowed) {
+                await window.supabaseClient.auth.signOut();
+                showAuthOverlay();
+                showAuthError(FinanzData.lastAccessError || 'Tu cuenta no está autorizada para usar esta app.');
+                return;
+            }
+
             hideAuthOverlay();
             showToast('Â¡Bienvenido!');
-            await FinanzData.init();
             updateUserProfileUI();
             await navigateTo('dashboard');
         }
@@ -1010,5 +1035,6 @@ window.toggleSidebar = toggleSidebar;
 window.openSidebar = openSidebar;
 window.closeSidebar = closeSidebar;
 window.handleLogout = handleLogout;
+
 
 

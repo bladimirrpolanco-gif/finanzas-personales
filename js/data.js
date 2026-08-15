@@ -6,6 +6,7 @@ class FinanzDataService {
     constructor() {
         this.client = window.supabaseClient;
         this.user = null;
+        this.lastAccessError = null;
     }
 
     async init() {
@@ -29,7 +30,28 @@ class FinanzDataService {
 
         const { data: { user } } = await this.client.auth.getUser();
         this.user = user;
-        return !!user;
+        if (!user) {
+            this.lastAccessError = null;
+            return false;
+        }
+
+        const { data: accessRow, error: accessError } = await this.client
+            .from('app_access')
+            .select('enabled')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (accessError || !accessRow || accessRow.enabled === false) {
+            this.lastAccessError = 'Tu cuenta no está autorizada para usar esta app.';
+            try {
+                await this.client.auth.signOut();
+            } catch (e) {}
+            this.user = null;
+            return false;
+        }
+
+        this.lastAccessError = null;
+        return true;
     }
 // ===== PROFILE & SETTINGS =====
     async getSettings() {
@@ -506,4 +528,5 @@ class FinanzDataService {
 }
 
 window.FinanzData = new FinanzDataService();
+
 
