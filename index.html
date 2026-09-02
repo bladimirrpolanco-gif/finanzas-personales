@@ -167,6 +167,11 @@
                     </div>
                 </div>
 
+                <div class="form-group" id="tx-category-other-wrap" style="display: none;">
+                    <label class="form-label">Nombre de la categoría</label>
+                    <input type="text" id="tx-category-other" class="form-input" placeholder="Ej: Mascota, Regalo, Suscripción...">
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Cuenta</label>
                     <select id="tx-account" class="form-input form-select">
@@ -845,15 +850,38 @@
                     <button class="tab" data-analysis-type="income" onclick="setAnalysisType('income')">Ingreso</button>
                     <button class="tab" data-analysis-type="categories"
                         onclick="setAnalysisType('categories')">Categorías</button>
+                    <button class="tab" data-analysis-type="calendar"
+                        onclick="setAnalysisType('calendar')">Calendario</button>
                 </div>
 
 
 
                 <!-- Gráfica -->
-                <div class="chart-container animate-fade-in-up">
+                <div class="chart-container animate-fade-in-up" id="analysis-chart-container">
                     <h3 class="chart-title">Últimos 30 Días Gastos</h3>
                     <div class="chart-wrapper">
                         <canvas id="expense-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Calendario de movimientos -->
+                <div class="chart-container animate-fade-in-up" id="analysis-calendar-container" style="display: none;">
+                    <div class="calendar-header">
+                        <button type="button" class="header-icon" onclick="changeCalendarMonth(-1)"
+                            style="width: 32px; height: 32px;">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="calendar-month-label">Octubre 2026</span>
+                        <button type="button" class="header-icon" onclick="changeCalendarMonth(1)"
+                            style="width: 32px; height: 32px;">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendar-weekdays">
+                        <span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Se renderiza dinámicamente -->
                     </div>
                 </div>
             </main>

@@ -135,7 +135,14 @@ const CATEGORIES = {
 
 function getCategoryInfo(type, categoryId) {
     const categories = CATEGORIES[type] || CATEGORIES.expense;
-    return categories.find(c => c.id === categoryId) || categories[categories.length - 1];
+    const found = categories.find(c => c.id === categoryId);
+    if (found) return found;
+
+    // Categoria personalizada (ej: el usuario escribio su propio nombre
+    // al elegir "Otros"): usamos el icono/clase de "Otros" pero
+    // respetamos el nombre real en vez de mostrar "Otros" siempre.
+    const fallback = categories[categories.length - 1];
+    return { ...fallback, id: categoryId, name: categoryId || fallback.name };
 }
 
 // ===== ICONOS DE CUENTAS =====

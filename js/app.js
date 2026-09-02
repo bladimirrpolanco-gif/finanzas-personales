@@ -9,6 +9,8 @@ let currentTransactionType = 'all';
 let currentAnalysisType = 'expense';
 let currentCategoryType = 'expense';
 let authListenerReady = false;
+let currentCalendarMonth = new Date();
+currentCalendarMonth.setDate(1);
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
@@ -493,6 +495,11 @@ async function renderAnalysis() {
 }
 
 async function refreshAnalysisChart() {
+    if (currentAnalysisType === 'calendar') {
+        await renderCalendar();
+        return;
+    }
+
     const chartTitle = document.querySelector('.chart-title');
     const periodName = {
         'today': 'Hoy',
@@ -536,7 +543,84 @@ async function setAnalysisType(type) {
         tab.classList.toggle('active', tab.dataset.analysisType === type);
     });
 
+    const chartContainer = document.getElementById('analysis-chart-container');
+    const calendarContainer = document.getElementById('analysis-calendar-container');
+    if (chartContainer) chartContainer.style.display = type === 'calendar' ? 'none' : 'block';
+    if (calendarContainer) calendarContainer.style.display = type === 'calendar' ? 'block' : 'none';
+
     await renderAnalysis();
+}
+
+// ===== CALENDARIO DE MOVIMIENTOS =====
+function formatCalendarAmount(amount) {
+    const rounded = Math.round(Math.abs(amount));
+    const sign = amount < 0 ? '-' : '+';
+    return sign + rounded.toLocaleString('es-DO');
+}
+
+function changeCalendarMonth(delta) {
+    currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + delta);
+    renderCalendar();
+}
+
+async function renderCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    const label = document.getElementById('calendar-month-label');
+    if (!grid) return;
+
+    const year = currentCalendarMonth.getFullYear();
+    const month = currentCalendarMonth.getMonth();
+
+    if (label) {
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        label.textContent = `${monthNames[month]} ${year}`;
+    }
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startWeekday = firstDay.getDay(); // 0 = domingo
+
+    const toISODate = (d) => {
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${d.getFullYear()}-${mm}-${dd}`;
+    };
+
+    const txs = await FinanzData.getTransactionsInRange(toISODate(firstDay), toISODate(lastDay));
+
+    // Agrupar por dia (1-31): total de ingresos y de gastos
+    const byDay = {};
+    txs.forEach(t => {
+        const day = parseInt(t.date.slice(8, 10), 10);
+        if (!byDay[day]) byDay[day] = { income: 0, expense: 0 };
+        const amount = parseFloat(t.amount);
+        if (t.type === 'income') byDay[day].income += amount;
+        else byDay[day].expense += amount;
+    });
+
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+    let html = '';
+    for (let i = 0; i < startWeekday; i++) {
+        html += '<div class="calendar-day empty"></div>';
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const totals = byDay[day];
+        const isToday = isCurrentMonth && today.getDate() === day;
+        html += `
+            <div class="calendar-day${isToday ? ' today' : ''}">
+                <span class="calendar-day-num">${day}</span>
+                ${totals && totals.income > 0 ? `<span class="calendar-day-income">${formatCalendarAmount(totals.income)}</span>` : ''}
+                ${totals && totals.expense > 0 ? `<span class="calendar-day-expense">${formatCalendarAmount(-totals.expense)}</span>` : ''}
+            </div>
+        `;
+    }
+
+    grid.innerHTML = html;
 }
 
 async function renderProfile() {
@@ -582,6 +666,12 @@ async function openAddTransaction(type = 'expense') {
         `).join('');
     }
 
+    // Reiniciar el campo de nombre personalizado de "Otros"
+    const otherWrap = document.getElementById('tx-category-other-wrap');
+    const otherInput = document.getElementById('tx-category-other');
+    if (otherWrap) otherWrap.style.display = 'none';
+    if (otherInput) otherInput.value = '';
+
     openModal('modal-add-transaction');
 }
 
@@ -591,6 +681,16 @@ function setTxCategory(catId) {
     document.querySelectorAll('#category-options .assistant-suggestion').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.catId === catId);
     });
+
+    // Si eligio "Otros", dejar que le ponga su propio nombre a la categoria
+    const otherWrap = document.getElementById('tx-category-other-wrap');
+    const otherInput = document.getElementById('tx-category-other');
+    if (otherWrap) {
+        otherWrap.style.display = catId === 'other' ? 'block' : 'none';
+    }
+    if (catId === 'other' && otherInput) {
+        otherInput.focus();
+    }
 }
 
 async function fillAccountSelects(selectIds) {
@@ -617,11 +717,17 @@ async function saveTransaction(e) {
         return;
     }
 
+    let category = document.getElementById('tx-category').value;
+    if (category === 'other') {
+        const customName = (document.getElementById('tx-category-other')?.value || '').trim();
+        if (customName) category = customName;
+    }
+
     const tx = {
         amount: parseFloat(document.getElementById('tx-amount').value),
         title: document.getElementById('tx-title').value,
         type: document.getElementById('tx-type').value,
-        category: document.getElementById('tx-category').value,
+        category: category,
         accountId: accountId,
         note: document.getElementById('tx-note').value
     };
@@ -1105,6 +1211,7 @@ window.sendAssistantMessage = sendAssistantMessage;
 window.setFilter = setFilter;
 window.setTransactionType = setTransactionType;
 window.setAnalysisType = setAnalysisType;
+window.changeCalendarMonth = changeCalendarMonth;
 window.openAssistant = () => openModal('modal-assistant');
 window.toggleSidebar = toggleSidebar;
 window.openSidebar = openSidebar;

@@ -318,6 +318,20 @@ class FinanzDataService {
         return data || [];
     }
 
+    // Trae las transacciones dentro de un rango exacto de fechas (para el
+    // calendario, donde se necesita un mes calendario especifico y no uno
+    // de los periodos relativos de getDateRange).
+    async getTransactionsInRange(startDateISO, endDateISO) {
+        if (!this.user) return [];
+        const { data } = await this.client
+            .from('transactions')
+            .select('*')
+            .gte('date', startDateISO)
+            .lte('date', endDateISO)
+            .order('date', { ascending: true });
+        return data || [];
+    }
+
     async addTransaction(tx) {
         if (!this.user) return;
 
