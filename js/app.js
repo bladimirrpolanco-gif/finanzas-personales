@@ -352,6 +352,26 @@ function renderMonthSummaryChange(elId, pct, isExpense) {
     el.style.color = isGood ? 'var(--success)' : 'var(--danger)';
 }
 
+// Barra de progreso de las tarjetas de Ingresos/Gastos. `fillPct` y
+// `label` deben venir ya calculados de datos reales; si no hay dato
+// valido (null), la barra se oculta en vez de mostrar un 0% falso.
+function renderMonthSummaryProgress(prefix, fillPct, label) {
+    const track = document.getElementById(`dash-${prefix}-progress-fill`)?.closest('.month-summary-progress-track');
+    const fill = document.getElementById(`dash-${prefix}-progress-fill`);
+    const labelEl = document.getElementById(`dash-${prefix}-progress-label`);
+    if (!track || !fill || !labelEl) return;
+
+    if (fillPct === null || fillPct === undefined || !isFinite(fillPct)) {
+        track.classList.remove('visible');
+        labelEl.textContent = '';
+        return;
+    }
+
+    track.classList.add('visible');
+    fill.style.width = `${Math.max(0, Math.min(100, fillPct))}%`;
+    labelEl.textContent = label;
+}
+
 function renderAiInsight(comparison) {
     const el = document.getElementById('ai-insight-text');
     if (!el) return;
@@ -400,6 +420,23 @@ async function renderDashboard() {
     // 3. Cambios de ingresos/gastos del mes (usa la misma comparacion real)
     renderMonthSummaryChange('dash-income-change', comparison?.incomeChangePct, false);
     renderMonthSummaryChange('dash-expense-change', comparison?.expenseChangePct, true);
+
+    // 3b. Barras de progreso: Gastos usa el presupuesto mensual real
+    // (Ajustes > Presupuesto); Ingresos compara contra lo ganado en el
+    // periodo anterior real, ya que no existe una "meta de ingresos".
+    if (stats.monthlyBudget > 0) {
+        const usedPct = parseFloat(stats.budgetPercentUsed);
+        renderMonthSummaryProgress('expense', usedPct, `${stats.budgetPercentUsed}% del presupuesto`);
+    } else {
+        renderMonthSummaryProgress('expense', null, '');
+    }
+
+    if (comparison && comparison.prevIncome > 0) {
+        const incomeVsPrevPct = (comparison.currentIncome / comparison.prevIncome) * 100;
+        renderMonthSummaryProgress('income', incomeVsPrevPct, `${incomeVsPrevPct.toFixed(0)}% del período anterior`);
+    } else {
+        renderMonthSummaryProgress('income', null, '');
+    }
 
     // 4. Insight de Finia AI, basado en la variacion real de gastos
     renderAiInsight(comparison);

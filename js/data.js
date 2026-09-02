@@ -555,16 +555,26 @@ class FinanzDataService {
         const toISO = (d) => d.toISOString().split('T')[0];
         const txs = await this.getTransactionsInRange(toISO(range.start), toISO(range.end));
 
+        // Guardamos tanto el string ISO (clave del ledger) como el Date local
+        // original (para las etiquetas). Formatear la etiqueta reparseando el
+        // string ISO con `new Date("YYYY-MM-DD")` lo interpretaria como
+        // medianoche UTC, que en timezones detras de UTC (ej. RD, UTC-4) se
+        // muestra como el dia anterior al formatear en hora local.
         const days = [];
+        const dayDates = [];
         const cursor = new Date(range.start);
         cursor.setHours(0, 0, 0, 0);
         const today = new Date(range.end);
         today.setHours(0, 0, 0, 0);
         while (cursor <= today) {
             days.push(toISO(cursor));
+            dayDates.push(new Date(cursor));
             cursor.setDate(cursor.getDate() + 1);
         }
-        if (days.length === 0) days.push(toISO(today));
+        if (days.length === 0) {
+            days.push(toISO(today));
+            dayDates.push(new Date(today));
+        }
 
         const netByDay = {};
         txs.forEach(t => {
@@ -580,7 +590,7 @@ class FinanzDataService {
         }
 
         return {
-            labels: days.map(d => FinanzUtils.formatDate(d, 'short')),
+            labels: dayDates.map(d => FinanzUtils.formatDate(d, 'short')),
             data: balances
         };
     }

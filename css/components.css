@@ -336,7 +336,8 @@
 
 .month-summary-label {
     font-size: var(--font-size-sm);
-    color: var(--text-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
     margin-bottom: 2px;
 }
 
@@ -357,6 +358,40 @@
 .month-summary-change {
     font-size: var(--font-size-xs);
     color: var(--text-muted);
+}
+
+.month-summary-progress-track {
+    height: 5px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: var(--border-radius-full);
+    overflow: hidden;
+    margin-top: var(--spacing-sm);
+    display: none;
+}
+
+.month-summary-progress-track.visible {
+    display: block;
+}
+
+.month-summary-progress-fill {
+    height: 100%;
+    border-radius: var(--border-radius-full);
+    width: 0%;
+}
+
+.month-summary-card.income .month-summary-progress-fill {
+    background: var(--success);
+}
+
+.month-summary-card.expense .month-summary-progress-fill {
+    background: var(--danger);
+}
+
+.month-summary-progress-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 4px;
 }
 
 /* ===== FINIA AI: TARJETA DE INSIGHT ===== */
