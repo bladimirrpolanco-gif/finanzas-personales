@@ -425,11 +425,23 @@ async function renderDashboard() {
     }
 
     // 2. Variacion de patrimonio vs. periodo anterior + pill de tendencia
+    // (esta SI usa el periodo seleccionado arriba, porque la tarjeta de
+    // Patrimonio tiene su propio selector "Este mes/Semana/Hoy" y el texto
+    // se refiere explicitamente a ese periodo).
     renderPatrimonyChange(comparison);
 
-    // 3. Cambios de ingresos/gastos del mes (usa la misma comparacion real)
-    renderMonthSummaryChange('dash-income-change', comparison?.incomeChangePct, false);
-    renderMonthSummaryChange('dash-expense-change', comparison?.expenseChangePct, true);
+    // 2b. Comparacion mensual real (mes actual completo vs. mes anterior
+    // completo), independiente del periodo seleccionado arriba. Se usa
+    // tanto para el texto "vs. periodo anterior" como para la barra de
+    // Ingresos/Gastos, para que ambas cosas en la misma tarjeta siempre
+    // digan lo mismo y no salgan dos numeros distintos y confusos.
+    const monthComparison = currentDashboardPeriod === 'thisMonth'
+        ? comparison
+        : await FinanzData.getPeriodComparison('thisMonth');
+
+    // 3. Cambios de ingresos/gastos (siempre mes actual vs. mes anterior)
+    renderMonthSummaryChange('dash-income-change', monthComparison?.incomeChangePct, false);
+    renderMonthSummaryChange('dash-expense-change', monthComparison?.expenseChangePct, true);
 
     // 3b. Barra de progreso de Gastos, con el mismo gasto del mes en curso
     // ya calculado arriba (evita pedirlo dos veces).
@@ -441,14 +453,8 @@ async function renderDashboard() {
     }
 
     // 3c. Barra de progreso de Ingresos: no existe un "presupuesto de
-    // ingresos" real, pero para que sea igual de estable que la de Gastos
-    // (sin importar el periodo seleccionado arriba) comparamos siempre el
-    // mes completo actual contra el mes completo anterior, no el periodo
-    // que tengas elegido.
-    const monthComparison = currentDashboardPeriod === 'thisMonth'
-        ? comparison
-        : await FinanzData.getPeriodComparison('thisMonth');
-
+    // ingresos" real, asi que comparamos el mes completo actual contra el
+    // mes completo anterior (mismo monthComparison de arriba).
     if (monthComparison && monthComparison.prevIncome > 0) {
         const incomeVsPrevPct = (monthComparison.currentIncome / monthComparison.prevIncome) * 100;
         renderMonthSummaryProgress('income', incomeVsPrevPct, 'de lo ganado el mes pasado');
@@ -459,7 +465,7 @@ async function renderDashboard() {
     }
 
     // 4. Insight de Finia AI, basado en la variacion real de gastos
-    renderAiInsight(comparison);
+    renderAiInsight(monthComparison);
 
     // 5. Grafica de evolucion del patrimonio (datos reales reconstruidos
     // del saldo actual + el ledger de transacciones del periodo)
