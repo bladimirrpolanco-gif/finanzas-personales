@@ -453,7 +453,9 @@ async function renderDashboard() {
         const incomeVsPrevPct = (monthComparison.currentIncome / monthComparison.prevIncome) * 100;
         renderMonthSummaryProgress('income', incomeVsPrevPct, 'de lo ganado el mes pasado');
     } else {
-        renderMonthSummaryProgress('income', null, '');
+        // Sin datos del mes anterior (cuenta nueva, o agosto sin ingresos):
+        // mostrar la barra igual que Gastos, en 0%, en vez de ocultarla.
+        renderMonthSummaryProgress('income', 0, 'de lo ganado el mes pasado');
     }
 
     // 4. Insight de Finia AI, basado en la variacion real de gastos
