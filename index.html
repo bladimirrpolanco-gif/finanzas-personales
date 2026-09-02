@@ -37,15 +37,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0A0A0A">
-    <meta name="description" content="FinanzApp - Tu asistente de finanzas personales con IA">
+    <meta name="description" content="Finia - Tu asistente de finanzas personales con IA">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <title>FinanzApp - Finanzas Personales</title>
+    <title>Finia - Finanzas Personales</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23CAFD0A' rx='20' width='100' height='100'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='%230A0A0A' font-family='Inter'>$</text></svg>">
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%230A0A0A'/><rect x='120' y='290' width='56' height='110' rx='12' fill='%23CAFD0A'/><rect x='200' y='230' width='56' height='170' rx='12' fill='%23CAFD0A'/><rect x='280' y='160' width='56' height='240' rx='12' fill='%23CAFD0A'/><circle cx='336' cy='128' r='26' fill='%23CAFD0A'/></svg>">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,9 +77,10 @@
         <div class="modal"
             style="max-width: 400px; transform: translateY(0); border-radius: var(--border-radius-xl); padding: var(--spacing-xl);">
             <div class="text-center mb-lg">
-                <div class="header-logo" style="margin: 0 auto 15px; width: 60px; height: 60px; font-size: 2rem;">$
+                <div class="header-logo" style="margin: 0 auto 15px; width: 60px; height: 60px;">
+                    <svg viewBox="0 0 512 512" fill="currentColor"><rect x="120" y="290" width="56" height="110" rx="12"/><rect x="200" y="230" width="56" height="170" rx="12"/><rect x="280" y="160" width="56" height="240" rx="12"/><circle cx="336" cy="128" r="26"/></svg>
                 </div>
-                <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--accent-primary);">FinanzApp</h2>
+                <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--accent-primary);">Finia</h2>
                 <p class="text-muted">Gestiona tus finanzas en la nube</p>
             </div>
 
@@ -441,7 +442,7 @@
                 <button class="page-back" onclick="closeModal('modal-assistant')">
                     <i class="fas fa-chevron-left"></i>
                 </button>
-                <h3 class="modal-title">Asistente de FinanzApp</h3>
+                <h3 class="modal-title">Asistente de Finia</h3>
                 <button class="modal-close" onclick="closeModal('modal-assistant')">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -508,9 +509,11 @@
                         style="background: transparent; margin-left: -10px;">
                         <i class="fas fa-bars" style="font-size: 1.2rem;"></i>
                     </button>
-                    <div class="header-logo">$</div>
+                    <div class="header-logo">
+                        <svg viewBox="0 0 512 512" fill="currentColor"><rect x="120" y="290" width="56" height="110" rx="12"/><rect x="200" y="230" width="56" height="170" rx="12"/><rect x="280" y="160" width="56" height="240" rx="12"/><circle cx="336" cy="128" r="26"/></svg>
+                    </div>
                     <div class="header-title">
-                        <h1>FinanzApp</h1>
+                        <h1>Finia</h1>
                         <span>Bienvenido de nuevo</span>
                     </div>
                 </div>
@@ -857,7 +860,7 @@
                         <span id="profile-avatar-text">UD</span>
                     </div>
                     <h2 class="profile-name" id="profile-name">Usuario Demo</h2>
-                    <p class="profile-email" id="profile-email">demo@finanzapp.com</p>
+                    <p class="profile-email" id="profile-email">demo@finia.app</p>
                     <span class="profile-badge">
                         <i class="fas fa-crown"></i>
                         <span id="profile-type">Premium</span>
@@ -888,7 +891,7 @@
                             <i class="fas fa-star"></i>
                         </div>
                         <div class="profile-menu-text">
-                            <h4>Valora FinanzApp</h4>
+                            <h4>Valora Finia</h4>
                             <p>Comparte tu experiencia en la tienda</p>
                         </div>
                         <div class="profile-menu-arrow">
@@ -988,10 +991,12 @@
         style="align-items: flex-start; justify-content: flex-start;">
         <div id="sidebar-drawer" class="sidebar-drawer">
             <div class="sidebar-header">
-                <div class="header-logo" style="width: 50px; height: 50px; font-size: 1.5rem;">$</div>
+                <div class="header-logo" style="width: 50px; height: 50px;">
+                    <svg viewBox="0 0 512 512" fill="currentColor"><rect x="120" y="290" width="56" height="110" rx="12"/><rect x="200" y="230" width="56" height="170" rx="12"/><rect x="280" y="160" width="56" height="240" rx="12"/><circle cx="336" cy="128" r="26"/></svg>
+                </div>
                 <div class="sidebar-user-info">
                     <h3 id="sidebar-user-name">Usuario Demo</h3>
-                    <p id="sidebar-user-email">demo@finanzapp.com</p>
+                    <p id="sidebar-user-email">demo@finia.app</p>
                 </div>
             </div>
 
@@ -1037,7 +1042,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                <p>FinanzApp v2.0 - Premium</p>
+                <p>Finia v2.0 - Premium</p>
             </div>
         </div>
     </div>

@@ -1,5 +1,5 @@
 ﻿/**
- * FinanzApp - Data Layer (Supabase Cloud)
+ * Finia - Data Layer (Supabase Cloud)
  */
 
 class FinanzDataService {

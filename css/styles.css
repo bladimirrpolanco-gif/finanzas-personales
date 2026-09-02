@@ -1,5 +1,5 @@
 /* ===================================
-   FinanzApp - Estilos Principales
+   Finia - Estilos Principales
    Sistema de Diseño Moderno
    =================================== */
 
@@ -196,14 +196,20 @@ img {
 .header-logo {
     width: 40px;
     height: 40px;
-    background: var(--gradient-accent);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: var(--font-size-xl);
-    color: var(--bg-primary);
+    color: var(--accent-primary);
+}
+
+.header-logo svg {
+    width: 60%;
+    height: 60%;
 }
 
 .header-title {
@@ -292,6 +298,8 @@ img {
 
 .nav-item {
     display: flex;
+    flex: 1 1 0;
+    min-width: 0;
     flex-direction: column;
     align-items: center;
     gap: 4px;
@@ -331,6 +339,7 @@ img {
 }
 
 .nav-add {
+    flex: 0 0 56px;
     width: 56px;
     height: 56px;
     background: var(--gradient-accent);

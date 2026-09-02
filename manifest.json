@@ -1,6 +1,6 @@
 {
-    "name": "FinanzApp - Finanzas Personales",
-    "short_name": "FinanzApp",
+    "name": "Finia - Finanzas Personales",
+    "short_name": "Finia",
     "description": "Tu asistente de finanzas personales con IA",
     "start_url": "./index.html",
     "display": "standalone",

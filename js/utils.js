@@ -1,6 +1,6 @@
 
 /**
- * FinanzApp - Utilidades
+ * Finia - Utilidades
  * Funciones de ayuda y formateo
  */
 

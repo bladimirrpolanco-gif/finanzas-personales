@@ -63,6 +63,7 @@
     }
 
     .nav-item {
+        flex: 0 0 auto !important;
         width: 100% !important;
         padding: var(--spacing-md) !important;
         flex-direction: column !important;
@@ -198,7 +199,7 @@
 
     /* Logo superior en el Sidebar */
     .bottom-nav::before {
-        content: 'FinanzApp';
+        content: 'Finia';
         display: block;
         margin-bottom: var(--spacing-2xl);
         padding: 0 var(--spacing-md);

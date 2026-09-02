@@ -1,5 +1,5 @@
 ﻿/**
- * FinanzApp - Main App (Supabase Version)
+ * Finia - Main App (Supabase Version)
  * All buttons and forms wired to Supabase
  */
 
@@ -924,7 +924,7 @@ function toggleSidebar() {
 
 function updateUserProfileUI() {
     const userName = FinanzData.user?.user_metadata?.full_name || FinanzData.user?.user_metadata?.name || FinanzData.user?.email?.split('@')[0] || 'Usuario Demo';
-    const userEmail = FinanzData.user?.email || 'demo@finanzapp.com';
+    const userEmail = FinanzData.user?.email || 'demo@finia.app';
     const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'UD';
 
     // 1. Sidebar

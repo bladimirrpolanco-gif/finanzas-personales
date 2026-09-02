@@ -1,11 +1,11 @@
 /**
- * FinanzApp - Service Worker
+ * Finia - Service Worker
  * Permite funcionamiento offline y cacheo de recursos
  */
 
-const CACHE_NAME = 'finanzapp-v9';
-const STATIC_CACHE = 'finanzapp-static-v9';
-const DYNAMIC_CACHE = 'finanzapp-dynamic-v9';
+const CACHE_NAME = 'finia-v1';
+const STATIC_CACHE = 'finia-static-v1';
+const DYNAMIC_CACHE = 'finia-dynamic-v1';
 
 // Dominio de la API (Supabase): nunca se debe cachear, contiene datos
 // por-usuario (auth, cuentas, transacciones) identificados solo por el
@@ -187,7 +187,7 @@ self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : {};
 
     const options = {
-        body: data.body || 'Nueva notificación de FinanzApp',
+        body: data.body || 'Nueva notificación de Finia',
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-72.png',
         vibrate: [100, 50, 100],
@@ -197,7 +197,7 @@ self.addEventListener('push', (event) => {
     };
 
     event.waitUntil(
-        self.registration.showNotification(data.title || 'FinanzApp', options)
+        self.registration.showNotification(data.title || 'Finia', options)
     );
 });
 

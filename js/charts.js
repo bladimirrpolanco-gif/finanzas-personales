@@ -1,5 +1,5 @@
 /**
- * FinanzApp - Charts
+ * Finia - Charts
  * Configuración de Chart.js
  */
 

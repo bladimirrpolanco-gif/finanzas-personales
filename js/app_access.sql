@@ -1,4 +1,4 @@
--- Access control for FinanzApp
+-- Access control for Finia
 -- Run this in the Supabase SQL editor for the project you want to use.
 
 create table if not exists public.app_access (
