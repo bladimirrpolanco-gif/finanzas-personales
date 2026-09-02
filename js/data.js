@@ -129,7 +129,7 @@ class FinanzDataService {
             throw new Error('Saldo insuficiente en la cuenta de origen');
         }
 
-        // 2. Registrar transacciÃ³n de transferencia (addTransaction descontarÃ¡ de origen y sumarÃ¡ a destino automÃ¡ticamente)
+        // 2. Registrar transacción de transferencia (addTransaction descontará de origen y sumará a destino automáticamente)
         await this.addTransaction({
             accountId: fromId,
             type: 'expense',
@@ -195,7 +195,7 @@ class FinanzDataService {
 
         if (!pocket) return false;
 
-        // 2. Si hay cuenta de origen, validar saldo y crear transacciÃ³n (addTransaction restarÃ¡ saldo automÃ¡ticamente)
+        // 2. Si hay cuenta de origen, validar saldo y crear transacción (addTransaction restará saldo automáticamente)
         if (fromAccountId) {
             const { data: account } = await this.client
                 .from('accounts')
@@ -212,7 +212,7 @@ class FinanzDataService {
                     category: 'Ahorro',
                     title: `Ahorro para ${pocket.name}`,
                     amount: amount,
-                    note: 'DepÃ³sito a bolsillo'
+                    note: 'Depósito a bolsillo'
                 });
             }
         }
@@ -231,7 +231,7 @@ class FinanzDataService {
         if (!this.user) return false;
 
         try {
-            // 1. Obtener la informaciÃ³n del bolsillo antes de eliminarlo
+            // 1. Obtener la información del bolsillo antes de eliminarlo
             const { data: pocket, error: fetchError } = await this.client
                 .from('pockets')
                 .select('*')
@@ -257,14 +257,14 @@ class FinanzDataService {
                     // Devolver a la primera cuenta
                     const targetAccount = accounts[0];
 
-                    // Crear transacciÃ³n de reintegro (actualizarÃ¡ el saldo de la cuenta automÃ¡ticamente)
+                    // Crear transacción de reintegro (actualizará el saldo de la cuenta automáticamente)
                     await this.addTransaction({
                         accountId: targetAccount.id,
                         type: 'income',
                         category: 'Ahorro',
                         title: `Reintegro: Bolsillo '${pocket.name}' eliminado`,
                         amount: refundAmount,
-                        note: 'Reintegro automÃ¡tico por eliminaciÃ³n de bolsillo'
+                        note: 'Reintegro automático por eliminación de bolsillo'
                     });
                 }
             }
@@ -379,7 +379,7 @@ class FinanzDataService {
         if (!this.user) return false;
 
         try {
-            // 1. Obtener la transacciÃ³n antes de eliminarla
+            // 1. Obtener la transacción antes de eliminarla
             const { data: tx, error: getError } = await this.client
                 .from('transactions')
                 .select('*')
@@ -391,7 +391,7 @@ class FinanzDataService {
                 return false;
             }
 
-            // 2. Eliminar la transacciÃ³n
+            // 2. Eliminar la transacción
             const { error: deleteError } = await this.client
                 .from('transactions')
                 .delete()
@@ -629,7 +629,7 @@ class FinanzDataService {
         sessionStorage.clear();
 
         try {
-            // Intentar cerrar sesiÃ³n en Supabase (scope global para todos los dispositivos)
+            // Intentar cerrar sesión en Supabase (scope global para todos los dispositivos)
             await this.client.auth.signOut({ scope: 'global' });
         } catch (e) {
             console.error('Logout error:', e);
@@ -637,10 +637,10 @@ class FinanzDataService {
 
         this.user = null;
 
-        // SOLUCIÃ“N DEFINITIVA: Redirigir con parÃ¡metro ?loggedout=1 + timestamp
-        // El timestamp hace que el browser no pueda usar cachÃ© y la URL nueva
+        // SOLUCIÓN DEFINITIVA: Redirigir con parámetro ?loggedout=1 + timestamp
+        // El timestamp hace que el browser no pueda usar caché y la URL nueva
         // hace que el Service Worker trate esto como una visita fresca.
-        // replace() elimina esta entrada del historial, asÃ­ el botÃ³n atrÃ¡s no regresa aquÃ­.
+        // replace() elimina esta entrada del historial, así el botón atrás no regresa aquí.
         window.location.replace(window.location.pathname + '?loggedout=1&t=' + Date.now());
     }
 }

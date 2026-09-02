@@ -168,10 +168,10 @@ function updateDesktopSidebarActive() {
         }
     });
 }
-// ===== AUTENTICACIÃ“N =====
+// ===== AUTENTICACIÓN =====
 async function handleAuth(e) {
     if (e) e.preventDefault();
-    if (window.isLoggingOut) return; // Prevenir auto-submit de gestores de contraseÃ±as
+    if (window.isLoggingOut) return; // Prevenir auto-submit de gestores de contraseñas
 
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
@@ -189,9 +189,9 @@ async function handleAuth(e) {
         const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
 
         if (error) {
-            // Manejar especÃ­ficamente el lÃ­mite de velocidad
+            // Manejar específicamente el límite de velocidad
             if (error.status === 429) {
-                throw new Error('LÃ­mite de intentos excedido. Por favor, espera unos minutos antes de intentar de nuevo.');
+                throw new Error('Límite de intentos excedido. Por favor, espera unos minutos antes de intentar de nuevo.');
             }
 
             if (error.status === 400 && (error.message.includes('Invalid login credentials') || error.message.includes('User not found'))) {
@@ -211,7 +211,7 @@ async function handleAuth(e) {
             }
 
             hideAuthOverlay();
-            showToast('Â¡Bienvenido!');
+            showToast('¡Bienvenido!');
             updateUserProfileUI();
             await navigateTo('dashboard');
         }
@@ -229,7 +229,7 @@ async function handleAuth(e) {
     }
 }
 
-// ===== NAVEGACIÃ“N =====
+// ===== NAVEGACIÓN =====
 function setupNavigation() {
     document.querySelectorAll('.nav-item[data-page]').forEach(n => {
         n.onclick = async () => await navigateTo(n.dataset.page);
@@ -496,7 +496,7 @@ async function renderDashboard() {
         // Update days text
         const dailyMetaEl = dailyAvgEl.parentElement.querySelector('.summary-card-meta');
         if (dailyMetaEl && stats.days) {
-            dailyMetaEl.textContent = `${stats.days} dÃ­as transcurridos`;
+            dailyMetaEl.textContent = `${stats.days} días transcurridos`;
         }
     }
 
@@ -614,7 +614,7 @@ async function renderTransactions() {
     if (expenseEl) expenseEl.textContent = FinanzUtils.formatCurrency(stats.expense);
 
     if (txs.length === 0) {
-        list.innerHTML = '<div class="empty-state animate-fade-in"><p>No hay movimientos aÃºn.</p></div>';
+        list.innerHTML = '<div class="empty-state animate-fade-in"><p>No hay movimientos aún.</p></div>';
         return;
     }
 
@@ -664,7 +664,7 @@ async function renderAnalysis() {
     const countEl = document.getElementById('analysis-count');
     if (countEl) countEl.textContent = `${stats.transactionCount} transacciones`;
 
-    // Actualizar GrÃ¡fica
+    // Actualizar Gráfica
     await refreshAnalysisChart();
 }
 
@@ -679,7 +679,7 @@ async function refreshAnalysisChart() {
         'today': 'Hoy',
         'yesterday': 'Ayer',
         'week': 'Esta Semana',
-        '30days': 'Ãšltimos 30 DÃ­as'
+        '30days': 'Últimos 30 Días'
     }[currentFilter];
 
     if (currentAnalysisType === 'budget') {
@@ -690,7 +690,7 @@ async function refreshAnalysisChart() {
             spent: stats.expense
         });
     } else if (currentAnalysisType === 'categories') {
-        if (chartTitle) chartTitle.textContent = `DistribuciÃ³n por CategorÃ­as (${periodName})`;
+        if (chartTitle) chartTitle.textContent = `Distribución por Categorías (${periodName})`;
         const chartData = await FinanzData.getCategoryStats('expense', currentFilter);
         FinanzCharts.createCategoryChart('expense-chart', {
             labels: chartData.map(c => c.name),
@@ -910,10 +910,10 @@ async function saveTransaction(e) {
         const result = await FinanzData.addTransaction(tx);
         if (result) {
             closeModal('modal-add-transaction');
-            showToast('Â¡Movimiento guardado!');
+            showToast('¡Movimiento guardado!');
             await navigateTo(currentPage);
         } else {
-            throw new Error('No se pudo guardar la transacciÃ³n');
+            throw new Error('No se pudo guardar la transacción');
         }
     } catch (err) {
         console.error('Save Transaction Error:', err);
@@ -938,7 +938,7 @@ async function saveAccount(e) {
         const result = await FinanzData.addAccount(acc);
         if (result) {
             closeModal('modal-add-account');
-            showToast('Â¡Cuenta creada con Ã©xito!');
+            showToast('¡Cuenta creada con éxito!');
             await navigateTo(currentPage);
         } else {
             throw new Error('No se pudo crear la cuenta');
@@ -1061,7 +1061,7 @@ async function renderPocketsList() {
 }
 
 async function handleDeletePocket(id) {
-    if (confirm('Â¿EstÃ¡s seguro de que quieres eliminar este bolsillo? Si tiene dinero ahorrado, se devolverÃ¡ automÃ¡ticamente a tu primera cuenta.')) {
+    if (confirm('¿Estás seguro de que quieres eliminar este bolsillo? Si tiene dinero ahorrado, se devolverá automáticamente a tu primera cuenta.')) {
         try {
             await FinanzData.deletePocket(id);
             showToast('Bolsillo eliminado e historial actualizado');
@@ -1076,15 +1076,15 @@ async function handleDeletePocket(id) {
 }
 
 async function handleDeleteTransaction(id) {
-    if (confirm('Â¿EstÃ¡s seguro de que quieres eliminar esta transacciÃ³n? El saldo de la cuenta se ajustarÃ¡ automÃ¡ticamente.')) {
+    if (confirm('¿Estás seguro de que quieres eliminar esta transacción? El saldo de la cuenta se ajustará automáticamente.')) {
         try {
             const success = await FinanzData.deleteTransaction(id);
             if (success) {
-                showToast('TransacciÃ³n eliminada');
+                showToast('Transacción eliminada');
                 // Recargar datos globales y de la vista actual
                 await navigateTo(currentPage);
             } else {
-                throw new Error('No se pudo completar la eliminaciÃ³n');
+                throw new Error('No se pudo completar la eliminación');
             }
         } catch (err) {
             console.error('Delete Transaction Error:', err);
@@ -1094,12 +1094,12 @@ async function handleDeleteTransaction(id) {
 }
 
 async function resetData() {
-    if (confirm('âš ï¸ Â¿EstÃ¡s seguro de que quieres borrar TODOS los datos? Esta acciÃ³n eliminarÃ¡ todas tus transacciones, cuentas y bolsillos. NO se puede deshacer.')) {
-        if (confirm('âš ï¸âš ï¸ ULTIMA ADVERTENCIA: Se borrarÃ¡ toda tu informaciÃ³n financiera. Â¿Confirmas el borrado total?')) {
+    if (confirm('⚠ ️ ¿Estás seguro de que quieres borrar TODOS los datos? Esta acción eliminará todas tus transacciones, cuentas y bolsillos. NO se puede deshacer.')) {
+        if (confirm('⚠ ️⚠ ️ ULTIMA ADVERTENCIA: Se borrará toda tu información financiera. ¿Confirmas el borrado total?')) {
             try {
                 const success = await FinanzData.resetUserData();
                 if (success) {
-                    alert('Todos los datos han sido eliminados. La aplicaciÃ³n se reiniciarÃ¡.');
+                    alert('Todos los datos han sido eliminados. La aplicación se reiniciará.');
                     window.location.reload();
                 } else {
                     throw new Error('No se pudo completar el borrado');
@@ -1152,7 +1152,7 @@ async function checkBudgetAlerts() {
         const percent = parseFloat(stats.budgetPercentUsed) || 0;
         if (percent < 90) return;
 
-        // Avisar una sola vez por dÃ­a para no repetir el toast en cada login/cambio de sesiÃ³n
+        // Avisar una sola vez por día para no repetir el toast en cada login/cambio de sesión
         const alertKey = `budget-alert-shown-${new Date().toISOString().slice(0, 10)}`;
         if (sessionStorage.getItem(alertKey)) return;
         sessionStorage.setItem(alertKey, '1');
@@ -1179,7 +1179,7 @@ async function assistantQuickAction(action) {
 
     let response = "";
     switch (action) {
-        case 'analyze': response = "Analizando tus gastos... Veo que tu mayor gasto este mes es en Comida. Â¡PodrÃ­as ahorrar RD$2,000 si reduces las salidas!"; break;
+        case 'analyze': response = "Analizando tus gastos... Veo que tu mayor gasto este mes es en Comida. ¡Podrías ahorrar RD$2,000 si reduces las salidas!"; break;
         case 'add': closeModal('modal-assistant'); openAddTransaction('expense'); return;
         case 'budget': response = `Tu presupuesto mensual es de ${FinanzUtils.formatCurrency((await FinanzData.getSettings()).monthlyBudget)}. Te quedan ${FinanzUtils.formatCurrency((await FinanzData.getDashboardStats()).budgetRemaining)} para el resto del mes.`; break;
         case 'save': response = "Un consejo: Intenta la regla del 50/30/20. 50% Necesidades, 30% Deseos y 20% Ahorro."; break;
@@ -1197,7 +1197,7 @@ function sendAssistantMessage() {
     input.value = "";
 
     setTimeout(() => {
-        addChatMessage("Â¡Entendido! Estoy procesando tu solicitud...", 'bot');
+        addChatMessage("¡Entendido! Estoy procesando tu solicitud...", 'bot');
     }, 500);
 }
 
@@ -1223,7 +1223,7 @@ async function setFilter(filter) {
         tab.classList.toggle('active', tab.dataset.filter === filter);
     });
 
-    // Recargar datos de la pÃ¡gina actual
+    // Recargar datos de la página actual
     if (currentPage === 'transactions') await renderTransactions();
     if (currentPage === 'analysis') await renderAnalysis();
 }
@@ -1341,7 +1341,7 @@ async function savePocketDeposit(e) {
     const fromAccountId = document.getElementById('deposit-from-account').value;
 
     if (!amount || amount <= 0) {
-        showToast('Ingresa un monto vÃ¡lido', 'error');
+        showToast('Ingresa un monto válido', 'error');
         return;
     }
 
@@ -1349,7 +1349,7 @@ async function savePocketDeposit(e) {
         const success = await FinanzData.depositToPocket(pocketId, amount, fromAccountId || null);
         if (success) {
             closeModal('modal-deposit-pocket');
-            showToast('Â¡Ahorro guardado!');
+            showToast('¡Ahorro guardado!');
             await renderDashboardPockets();
             if (typeof renderPocketsList === 'function') await renderPocketsList();
 
