@@ -270,15 +270,18 @@
 /* ===== AUTH SCREEN ===== */
 .auth-screen {
     /* Tema oscuro (por defecto), solo para esta pantalla; el resto
-       de la app sigue con el tema oscuro de siempre sin cambios. */
-    --auth-bg: var(--bg-primary);
-    --auth-blob-1: rgba(202, 253, 10, 0.3);
-    --auth-blob-2: rgba(0, 210, 106, 0.16);
-    --auth-title: var(--accent-primary);
+       de la app sigue con el tema oscuro de siempre sin cambios.
+       Minimalista: el negro/grafito domina, el verde es solo acento. */
+    --auth-bg: #080A09;
+    --auth-title: var(--text-primary);
+    --auth-highlight: var(--accent-primary);
     --auth-text: var(--text-primary);
     --auth-muted: rgba(255, 255, 255, 0.6);
-    --auth-input-bg: var(--bg-input);
-    --auth-border: var(--border-color);
+    --auth-input-bg: #141614;
+    --auth-border: rgba(255, 255, 255, 0.08);
+    --auth-logo-glow: rgba(202, 253, 10, 0.16);
+    --auth-submit-glow: rgba(202, 253, 10, 0.12);
+    --auth-focus-ring: rgba(202, 253, 10, 0.14);
 
     position: fixed;
     inset: 0;
@@ -289,13 +292,6 @@
     align-items: stretch;
     padding: var(--spacing-2xl) var(--spacing-lg);
     background-color: var(--auth-bg);
-    background-repeat: no-repeat, no-repeat;
-    background-size: 480px 420px, 420px 380px;
-    background-image:
-        radial-gradient(circle, var(--auth-blob-1), transparent 70%),
-        radial-gradient(circle, var(--auth-blob-2), transparent 70%);
-    background-position: 15% -15%, 95% 10%;
-    animation: auth-aurora 20s ease-in-out infinite alternate;
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--transition-normal), background-color var(--transition-normal);
@@ -304,13 +300,15 @@
 /* Tema claro: blanco + verde, se activa con el boton sol/luna */
 .auth-screen[data-theme="light"] {
     --auth-bg: #FBFEF8;
-    --auth-blob-1: rgba(202, 253, 10, 0.4);
-    --auth-blob-2: rgba(30, 142, 62, 0.16);
     --auth-title: #146429;
+    --auth-highlight: #1E8E3E;
     --auth-text: #14201A;
     --auth-muted: #5B6B60;
     --auth-input-bg: #F1F8ED;
     --auth-border: rgba(20, 32, 26, 0.12);
+    --auth-logo-glow: rgba(30, 142, 62, 0.14);
+    --auth-submit-glow: rgba(202, 253, 10, 0.16);
+    --auth-focus-ring: rgba(30, 142, 62, 0.14);
 }
 
 .auth-screen.active {
@@ -322,10 +320,11 @@
     position: absolute;
     top: var(--spacing-lg);
     right: var(--spacing-lg);
+    z-index: 2;
     width: 40px;
     height: 40px;
     border-radius: var(--border-radius-full);
-    background: var(--auth-input-bg);
+    background: transparent;
     border: 1px solid var(--auth-border);
     color: var(--auth-muted);
     display: flex;
@@ -337,31 +336,33 @@
 }
 
 .auth-theme-toggle:hover {
-    color: var(--auth-title);
-    border-color: var(--auth-title);
+    color: var(--auth-highlight);
+    border-color: var(--auth-highlight);
 }
 
-@keyframes auth-aurora {
-    0% {
-        background-position: 15% -15%, 95% 10%;
-    }
-
-    50% {
-        background-position: 55% 0%, 60% 25%;
-    }
-
-    100% {
-        background-position: 25% 15%, 90% -10%;
-    }
+/* Linea de grafica decorativa detras del contenido, casi imperceptible */
+.auth-chart-decoration {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 40%;
+    color: rgba(255, 255, 255, 0.05);
+    pointer-events: none;
+    z-index: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .auth-screen {
-        animation: none;
-    }
+.auth-chart-decoration polyline {
+    stroke-width: 1;
+}
+
+.auth-screen[data-theme="light"] .auth-chart-decoration {
+    display: none;
 }
 
 .auth-content {
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 380px;
     margin: 0 auto;
@@ -416,7 +417,7 @@
     width: 84px;
     height: 84px;
     margin: 0 auto var(--spacing-lg);
-    box-shadow: var(--shadow-accent);
+    box-shadow: 0 0 26px var(--auth-logo-glow);
 }
 
 .auth-logo svg {
@@ -439,14 +440,28 @@
     margin-bottom: var(--spacing-2xl);
 }
 
+.auth-subtitle .auth-accent {
+    color: var(--auth-highlight);
+    font-weight: 600;
+}
+
 .auth-screen .form-label {
     color: var(--auth-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
 
 .auth-screen .form-input {
     background: var(--auth-input-bg);
     border-color: var(--auth-border);
     color: var(--auth-text);
+}
+
+.auth-screen .form-input:focus {
+    border-color: var(--auth-highlight);
+    box-shadow: 0 0 0 3px var(--auth-focus-ring);
 }
 
 .auth-screen .form-input::placeholder {
@@ -463,12 +478,36 @@
     color: var(--auth-text);
 }
 
-.auth-screen .auth-note {
-    color: var(--auth-muted);
+.auth-privacy-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    background: var(--auth-input-bg);
+    border: 1px solid var(--auth-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-lg);
 }
 
-.auth-screen .auth-note p {
-    color: inherit;
+.auth-privacy-icon {
+    color: var(--auth-highlight);
+    font-size: 1.15rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.auth-privacy-text h4 {
+    margin: 0 0 2px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--auth-text);
+}
+
+.auth-privacy-text p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--auth-muted);
+    line-height: 1.4;
 }
 
 /* Inputs con icono a la izquierda y (opcional) boton a la derecha */
@@ -511,15 +550,9 @@
 }
 
 .auth-submit {
-    box-shadow: var(--shadow-accent);
+    box-shadow: 0 2px 8px var(--auth-submit-glow);
 }
 
-.auth-note {
-    text-align: center;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: var(--spacing-lg);
-}
 
 /* ===== CHIPS ===== */
 .chip {

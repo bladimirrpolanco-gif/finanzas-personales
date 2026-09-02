@@ -136,12 +136,12 @@ function setupAuthUi() {
 
     const btn = document.getElementById('auth-submit');
     if (btn) {
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
+        btn.innerHTML = 'Entrar <i class="fas fa-arrow-right"></i>';
     }
 
-    const info = document.querySelector('#auth-overlay .auth-note p');
+    const info = document.querySelector('#auth-overlay .auth-privacy-text p');
     if (info) {
-        info.textContent = 'Solo los usuarios autorizados por el administrador pueden entrar.';
+        info.textContent = 'Solo usuarios autorizados por el administrador.';
     }
 }
 

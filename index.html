@@ -88,6 +88,14 @@
 
 <body>
     <div id="auth-overlay" class="auth-screen active">
+        <svg class="auth-chart-decoration" viewBox="0 0 400 220" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="0,190 35,150 70,175 105,95 140,130 175,55 210,90 245,35 280,75 315,20 400,55"
+                fill="none" stroke="currentColor" stroke-width="2" />
+            <circle cx="140" cy="130" r="4" fill="currentColor" />
+            <circle cx="210" cy="90" r="4" fill="currentColor" />
+            <circle cx="280" cy="75" r="4" fill="currentColor" />
+            <circle cx="315" cy="20" r="4" fill="currentColor" />
+        </svg>
         <button type="button" class="auth-theme-toggle" onclick="toggleAuthTheme()" aria-label="Cambiar apariencia">
             <i class="fas fa-sun" id="auth-theme-icon"></i>
         </button>
@@ -96,7 +104,7 @@
                 <svg viewBox="0 0 512 512" fill="currentColor"><rect x="90" y="300" width="70" height="140" rx="16"/><rect x="190" y="230" width="70" height="210" rx="16"/><rect x="290" y="140" width="70" height="300" rx="16"/><circle cx="360" cy="100" r="36"/></svg>
             </div>
             <h2 class="auth-title auth-anim auth-anim-2">Finia</h2>
-            <p class="auth-subtitle auth-anim auth-anim-3">Gestiona tus finanzas en la nube</p>
+            <p class="auth-subtitle auth-anim auth-anim-3">Tus <span class="auth-accent">finanzas</span>, bajo control.</p>
 
             <form id="auth-form" class="auth-anim auth-anim-4" onsubmit="handleAuth(event)">
                 <div class="form-group">
@@ -117,14 +125,18 @@
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block auth-submit" id="auth-submit">
-                    <i class="fas fa-sign-in-alt"></i> Entrar
+                    Entrar <i class="fas fa-arrow-right"></i>
                 </button>
             </form>
 
             <p id="auth-error" class="text-danger text-center mt-md" style="font-size: 0.85rem; display: none;"></p>
 
-            <div class="auth-note auth-anim auth-anim-5">
-                <p>Al entrar, se creará una cuenta automáticamente si no tienes una.</p>
+            <div class="auth-privacy-card auth-anim auth-anim-5">
+                <i class="fas fa-shield-alt auth-privacy-icon"></i>
+                <div class="auth-privacy-text">
+                    <h4>Acceso privado</h4>
+                    <p>Solo usuarios autorizados por el administrador.</p>
+                </div>
             </div>
         </div>
     </div>
