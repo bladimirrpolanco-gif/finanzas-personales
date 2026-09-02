@@ -440,9 +440,21 @@ async function renderDashboard() {
         renderMonthSummaryProgress('expense', null, '');
     }
 
-    // No hay barra para Ingresos: no existe un concepto real de "meta de
-    // ingresos" en la app, y compararlo contra el periodo anterior daba
-    // numeros que parecian un presupuesto sin serlo (confuso).
+    // 3c. Barra de progreso de Ingresos: no existe un "presupuesto de
+    // ingresos" real, pero para que sea igual de estable que la de Gastos
+    // (sin importar el periodo seleccionado arriba) comparamos siempre el
+    // mes completo actual contra el mes completo anterior, no el periodo
+    // que tengas elegido.
+    const monthComparison = currentDashboardPeriod === 'thisMonth'
+        ? comparison
+        : await FinanzData.getPeriodComparison('thisMonth');
+
+    if (monthComparison && monthComparison.prevIncome > 0) {
+        const incomeVsPrevPct = (monthComparison.currentIncome / monthComparison.prevIncome) * 100;
+        renderMonthSummaryProgress('income', incomeVsPrevPct, 'de lo ganado el mes pasado');
+    } else {
+        renderMonthSummaryProgress('income', null, '');
+    }
 
     // 4. Insight de Finia AI, basado en la variacion real de gastos
     renderAiInsight(comparison);
