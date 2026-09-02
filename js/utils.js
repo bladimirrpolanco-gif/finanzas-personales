@@ -105,16 +105,16 @@ function getDateRange(period) {
 // ventana real, solo que definida de forma mas util segun el periodo.
 function getPreviousPeriodRange(period) {
     if (period === 'thisMonth') {
-        // Comparar contra "los mismos N dias inmediatamente antes del 1 de
-        // este mes" (ej. 30-31 de agosto) es una ventana casi siempre vacia
-        // al inicio del mes. Es mas util y mas intuitivo comparar contra el
-        // mismo rango de dias pero del mes calendario anterior completo
-        // (ej. 1-2 de agosto si estamos a 2 de septiembre).
+        // Usar solo "los mismos N dias" del mes anterior (ej. 1-2 de agosto
+        // si estamos a 2 de septiembre) se queda corto: cualquier
+        // transaccion real que haya caido despues de ese dia en el mes
+        // anterior (ej. el 11-15 de agosto) queda fuera y la comparacion
+        // sale en 0% aunque si haya datos reales. Se compara contra el mes
+        // calendario anterior COMPLETO para no perder ninguna transaccion
+        // real, aunque no sea un conteo de dias exactamente parejo.
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-        const daysInPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
-        const clampedDay = Math.min(now.getDate(), daysInPrevMonth);
-        const end = new Date(now.getFullYear(), now.getMonth() - 1, clampedDay, 23, 59, 59, 999);
+        const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
         return { start, end };
     }
 
