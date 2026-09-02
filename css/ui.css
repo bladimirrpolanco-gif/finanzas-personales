@@ -113,6 +113,16 @@
     display: flex;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: var(--spacing-lg);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.tab-underline::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-underline .tab {
+    flex-shrink: 0;
 }
 
 .tab-underline .tab {
