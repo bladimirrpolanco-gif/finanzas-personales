@@ -100,10 +100,24 @@ function getDateRange(period) {
     return { start, end: now };
 }
 
-// Rango equivalente inmediatamente anterior a un periodo (misma duracion,
-// termina justo cuando empieza el periodo actual). Sirve para comparaciones
-// tipo "vs. periodo anterior" sin inventar datos: usa la misma duracion real.
+// Rango equivalente inmediatamente anterior a un periodo. Sirve para
+// comparaciones tipo "vs. periodo anterior" sin inventar datos: usa una
+// ventana real, solo que definida de forma mas util segun el periodo.
 function getPreviousPeriodRange(period) {
+    if (period === 'thisMonth') {
+        // Comparar contra "los mismos N dias inmediatamente antes del 1 de
+        // este mes" (ej. 30-31 de agosto) es una ventana casi siempre vacia
+        // al inicio del mes. Es mas util y mas intuitivo comparar contra el
+        // mismo rango de dias pero del mes calendario anterior completo
+        // (ej. 1-2 de agosto si estamos a 2 de septiembre).
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        const daysInPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+        const clampedDay = Math.min(now.getDate(), daysInPrevMonth);
+        const end = new Date(now.getFullYear(), now.getMonth() - 1, clampedDay, 23, 59, 59, 999);
+        return { start, end };
+    }
+
     const current = getDateRange(period);
     const durationMs = current.end.getTime() - current.start.getTime();
     const prevEnd = new Date(current.start.getTime() - 1);
