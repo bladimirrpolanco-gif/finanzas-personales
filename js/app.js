@@ -74,6 +74,17 @@ function hideAuthOverlay() {
     if (overlay) overlay.classList.remove('active');
 }
 
+function toggleAuthPassword() {
+    const input = document.getElementById('auth-password');
+    const icon = document.getElementById('auth-password-toggle-icon');
+    if (!input || !icon) return;
+
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    icon.classList.toggle('fa-eye', !isHidden);
+    icon.classList.toggle('fa-eye-slash', isHidden);
+}
+
 function showAuthError(message) {
     const errorEl = document.getElementById('auth-error');
     if (errorEl) {
@@ -1035,6 +1046,7 @@ window.handleDeletePocket = handleDeletePocket;
 window.handleDeleteTransaction = handleDeleteTransaction;
 window.resetData = resetData;
 window.handleAuth = handleAuth;
+window.toggleAuthPassword = toggleAuthPassword;
 window.navigateTo = navigateTo;
 window.quickAction = quickAction;
 window.openAccounts = openAccounts;

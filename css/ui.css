@@ -277,9 +277,14 @@
     justify-content: center;
     align-items: stretch;
     padding: var(--spacing-2xl) var(--spacing-lg);
-    background:
-        radial-gradient(500px 360px at 50% 0%, var(--accent-glow), transparent 70%),
-        var(--bg-primary);
+    background-color: var(--bg-primary);
+    background-repeat: no-repeat, no-repeat;
+    background-size: 480px 420px, 420px 380px;
+    background-image:
+        radial-gradient(circle, var(--accent-glow), transparent 70%),
+        radial-gradient(circle, rgba(0, 210, 106, 0.16), transparent 70%);
+    background-position: 15% -15%, 95% 10%;
+    animation: auth-aurora 20s ease-in-out infinite alternate;
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--transition-normal);
@@ -290,10 +295,75 @@
     visibility: visible;
 }
 
+@keyframes auth-aurora {
+    0% {
+        background-position: 15% -15%, 95% 10%;
+    }
+
+    50% {
+        background-position: 55% 0%, 60% 25%;
+    }
+
+    100% {
+        background-position: 25% 15%, 90% -10%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-screen {
+        animation: none;
+    }
+}
+
 .auth-content {
     width: 100%;
     max-width: 380px;
     margin: 0 auto;
+}
+
+/* Entrada escalonada de los elementos del login */
+.auth-anim {
+    opacity: 0;
+    animation: auth-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.auth-anim-1 {
+    animation-delay: 0.05s;
+}
+
+.auth-anim-2 {
+    animation-delay: 0.12s;
+}
+
+.auth-anim-3 {
+    animation-delay: 0.19s;
+}
+
+.auth-anim-4 {
+    animation-delay: 0.26s;
+}
+
+.auth-anim-5 {
+    animation-delay: 0.33s;
+}
+
+@keyframes auth-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-anim {
+        animation: none;
+        opacity: 1;
+    }
 }
 
 .auth-logo {
@@ -322,6 +392,45 @@
     opacity: 0.6;
     margin-top: var(--spacing-xs);
     margin-bottom: var(--spacing-2xl);
+}
+
+/* Inputs con icono a la izquierda y (opcional) boton a la derecha */
+.input-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon-wrap .input-icon-left {
+    position: absolute;
+    left: var(--spacing-md);
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    pointer-events: none;
+}
+
+.input-icon-wrap .form-input.has-icon-left {
+    padding-left: calc(var(--spacing-md) * 2 + 10px);
+}
+
+.input-icon-wrap .form-input.has-icon-right {
+    padding-right: calc(var(--spacing-md) * 2 + 10px);
+}
+
+.input-icon-wrap .input-icon-right-btn {
+    position: absolute;
+    right: var(--spacing-md);
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.input-icon-wrap .input-icon-right-btn:hover {
+    color: var(--text-primary);
 }
 
 .auth-submit {

@@ -74,20 +74,29 @@
 <body>
     <div id="auth-overlay" class="auth-screen active">
         <div class="auth-content">
-            <div class="header-logo auth-logo">
+            <div class="header-logo auth-logo auth-anim auth-anim-1">
                 <svg viewBox="0 0 512 512" fill="currentColor"><rect x="120" y="290" width="56" height="110" rx="12"/><rect x="200" y="230" width="56" height="170" rx="12"/><rect x="280" y="160" width="56" height="240" rx="12"/><circle cx="336" cy="128" r="26"/></svg>
             </div>
-            <h2 class="auth-title">Finia</h2>
-            <p class="auth-subtitle">Gestiona tus finanzas en la nube</p>
+            <h2 class="auth-title auth-anim auth-anim-2">Finia</h2>
+            <p class="auth-subtitle auth-anim auth-anim-3">Gestiona tus finanzas en la nube</p>
 
-            <form id="auth-form" onsubmit="handleAuth(event)">
+            <form id="auth-form" class="auth-anim auth-anim-4" onsubmit="handleAuth(event)">
                 <div class="form-group">
                     <label class="form-label">Correo Electrónico</label>
-                    <input type="email" id="auth-email" class="form-input" placeholder="ejemplo@correo.com" required>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-envelope input-icon-left"></i>
+                        <input type="email" id="auth-email" class="form-input has-icon-left" placeholder="ejemplo@correo.com" required>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Contraseña</label>
-                    <input type="password" id="auth-password" class="form-input" placeholder="••••••••" required>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-lock input-icon-left"></i>
+                        <input type="password" id="auth-password" class="form-input has-icon-left has-icon-right" placeholder="••••••••" required>
+                        <button type="button" class="input-icon-right-btn" onclick="toggleAuthPassword()" aria-label="Mostrar contraseña">
+                            <i class="fas fa-eye" id="auth-password-toggle-icon"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block auth-submit" id="auth-submit">
                     <i class="fas fa-sign-in-alt"></i> Entrar
@@ -96,7 +105,7 @@
 
             <p id="auth-error" class="text-danger text-center mt-md" style="font-size: 0.85rem; display: none;"></p>
 
-            <div class="auth-note">
+            <div class="auth-note auth-anim auth-anim-5">
                 <p>Al entrar, se creará una cuenta automáticamente si no tienes una.</p>
             </div>
         </div>
