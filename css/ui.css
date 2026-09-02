@@ -269,6 +269,17 @@
 
 /* ===== AUTH SCREEN ===== */
 .auth-screen {
+    /* Tema oscuro (por defecto), solo para esta pantalla; el resto
+       de la app sigue con el tema oscuro de siempre sin cambios. */
+    --auth-bg: var(--bg-primary);
+    --auth-blob-1: rgba(202, 253, 10, 0.3);
+    --auth-blob-2: rgba(0, 210, 106, 0.16);
+    --auth-title: var(--accent-primary);
+    --auth-text: var(--text-primary);
+    --auth-muted: rgba(255, 255, 255, 0.6);
+    --auth-input-bg: var(--bg-input);
+    --auth-border: var(--border-color);
+
     position: fixed;
     inset: 0;
     z-index: 9999;
@@ -277,22 +288,57 @@
     justify-content: center;
     align-items: stretch;
     padding: var(--spacing-2xl) var(--spacing-lg);
-    background-color: var(--bg-primary);
+    background-color: var(--auth-bg);
     background-repeat: no-repeat, no-repeat;
     background-size: 480px 420px, 420px 380px;
     background-image:
-        radial-gradient(circle, var(--accent-glow), transparent 70%),
-        radial-gradient(circle, rgba(0, 210, 106, 0.16), transparent 70%);
+        radial-gradient(circle, var(--auth-blob-1), transparent 70%),
+        radial-gradient(circle, var(--auth-blob-2), transparent 70%);
     background-position: 15% -15%, 95% 10%;
     animation: auth-aurora 20s ease-in-out infinite alternate;
     opacity: 0;
     visibility: hidden;
-    transition: opacity var(--transition-normal);
+    transition: opacity var(--transition-normal), background-color var(--transition-normal);
+}
+
+/* Tema claro: blanco + verde, se activa con el boton sol/luna */
+.auth-screen[data-theme="light"] {
+    --auth-bg: #FBFEF8;
+    --auth-blob-1: rgba(202, 253, 10, 0.4);
+    --auth-blob-2: rgba(30, 142, 62, 0.16);
+    --auth-title: #146429;
+    --auth-text: #14201A;
+    --auth-muted: #5B6B60;
+    --auth-input-bg: #F1F8ED;
+    --auth-border: rgba(20, 32, 26, 0.12);
 }
 
 .auth-screen.active {
     opacity: 1;
     visibility: visible;
+}
+
+.auth-theme-toggle {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-full);
+    background: var(--auth-input-bg);
+    border: 1px solid var(--auth-border);
+    color: var(--auth-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.auth-theme-toggle:hover {
+    color: var(--auth-title);
+    border-color: var(--auth-title);
 }
 
 @keyframes auth-aurora {
@@ -382,16 +428,47 @@
     font-size: 2.25rem;
     font-weight: 800;
     text-align: center;
-    color: var(--accent-primary);
+    color: var(--auth-title);
     letter-spacing: -1px;
 }
 
 .auth-subtitle {
     text-align: center;
-    color: var(--text-primary);
-    opacity: 0.6;
+    color: var(--auth-muted);
     margin-top: var(--spacing-xs);
     margin-bottom: var(--spacing-2xl);
+}
+
+.auth-screen .form-label {
+    color: var(--auth-muted);
+}
+
+.auth-screen .form-input {
+    background: var(--auth-input-bg);
+    border-color: var(--auth-border);
+    color: var(--auth-text);
+}
+
+.auth-screen .form-input::placeholder {
+    color: var(--auth-muted);
+    opacity: 0.7;
+}
+
+.auth-screen .input-icon-left,
+.auth-screen .input-icon-right-btn {
+    color: var(--auth-muted);
+}
+
+.auth-screen .input-icon-right-btn:hover {
+    color: var(--auth-text);
+}
+
+.auth-screen .auth-note {
+    color: var(--auth-muted);
+}
+
+.auth-screen .auth-note p {
+    color: inherit;
 }
 
 /* Inputs con icono a la izquierda y (opcional) boton a la derecha */

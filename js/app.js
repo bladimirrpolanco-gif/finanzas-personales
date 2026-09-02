@@ -85,6 +85,39 @@ function toggleAuthPassword() {
     icon.classList.toggle('fa-eye-slash', isHidden);
 }
 
+// ===== TEMA DEL LOGIN (claro/oscuro, a gusto de quien entra) =====
+const AUTH_THEME_KEY = 'finia-auth-theme';
+
+function applyAuthTheme(theme) {
+    const overlay = document.getElementById('auth-overlay');
+    const icon = document.getElementById('auth-theme-icon');
+    if (!overlay) return;
+
+    if (theme === 'light') {
+        overlay.setAttribute('data-theme', 'light');
+        if (icon) {
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+        }
+    } else {
+        overlay.removeAttribute('data-theme');
+        if (icon) {
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+        }
+    }
+}
+
+function toggleAuthTheme() {
+    const overlay = document.getElementById('auth-overlay');
+    const current = overlay && overlay.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    const next = current === 'light' ? 'dark' : 'light';
+    applyAuthTheme(next);
+    try {
+        localStorage.setItem(AUTH_THEME_KEY, next);
+    } catch (e) {}
+}
+
 function showAuthError(message) {
     const errorEl = document.getElementById('auth-error');
     if (errorEl) {
@@ -94,6 +127,11 @@ function showAuthError(message) {
 }
 
 function setupAuthUi() {
+    try {
+        const savedTheme = localStorage.getItem(AUTH_THEME_KEY);
+        if (savedTheme === 'light') applyAuthTheme('light');
+    } catch (e) {}
+
     const btn = document.getElementById('auth-submit');
     if (btn) {
         btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
@@ -1047,6 +1085,7 @@ window.handleDeleteTransaction = handleDeleteTransaction;
 window.resetData = resetData;
 window.handleAuth = handleAuth;
 window.toggleAuthPassword = toggleAuthPassword;
+window.toggleAuthTheme = toggleAuthTheme;
 window.navigateTo = navigateTo;
 window.quickAction = quickAction;
 window.openAccounts = openAccounts;
