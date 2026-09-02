@@ -234,6 +234,15 @@ function setupNavigation() {
     document.querySelectorAll('.nav-item[data-page]').forEach(n => {
         n.onclick = async () => await navigateTo(n.dataset.page);
     });
+
+    // Cerrar el menu del selector de periodo del dashboard al tocar afuera
+    document.addEventListener('click', (e) => {
+        const wrap = document.querySelector('.dash-period-wrap');
+        const menu = document.getElementById('dash-period-menu');
+        if (wrap && menu && !wrap.contains(e.target)) {
+            menu.classList.remove('open');
+        }
+    });
 }
 
 async function navigateTo(page) {
@@ -258,21 +267,126 @@ async function navigateTo(page) {
     }
 }
 
+// ===== DASHBOARD: PERIODO, VARIACIONES E INSIGHT =====
+let currentDashboardPeriod = 'thisMonth';
+
+function toggleDashPeriodMenu() {
+    const menu = document.getElementById('dash-period-menu');
+    if (menu) menu.classList.toggle('open');
+}
+
+async function setDashboardPeriod(period) {
+    currentDashboardPeriod = period;
+
+    const labels = {
+        thisMonth: 'Este mes',
+        week: 'Esta semana',
+        '30days': 'Últimos 30 días',
+        today: 'Hoy'
+    };
+    const labelEl = document.getElementById('dash-period-label');
+    if (labelEl) labelEl.textContent = labels[period] || 'Este mes';
+
+    document.querySelectorAll('#dash-period-menu button').forEach(btn => {
+        btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes(`'${period}'`));
+    });
+
+    const menu = document.getElementById('dash-period-menu');
+    if (menu) menu.classList.remove('open');
+
+    await renderDashboard();
+}
+
+function renderPatrimonyChange(comparison) {
+    const changeEl = document.getElementById('patrimony-change');
+    const changeIcon = document.getElementById('patrimony-change-icon');
+    const changePct = document.getElementById('patrimony-change-pct');
+    const changeSuffix = document.getElementById('patrimony-change-suffix');
+    const trendPill = document.getElementById('patrimony-trend-pill');
+    const trendText = document.getElementById('patrimony-trend-text');
+    if (!changeEl) return;
+
+    const pct = comparison?.patrimonyChangePct;
+
+    if (pct === null || pct === undefined || !isFinite(pct)) {
+        changeEl.classList.remove('positive', 'negative');
+        if (changeIcon) changeIcon.className = 'fas fa-minus';
+        if (changePct) changePct.textContent = 'Sin datos';
+        if (changeSuffix) changeSuffix.textContent = 'del período anterior';
+        if (trendPill) {
+            trendPill.classList.remove('negative');
+            trendPill.classList.add('neutral');
+        }
+        if (trendText) trendText.textContent = 'Sin histórico';
+        return;
+    }
+
+    const isPositive = pct >= 0;
+    changeEl.classList.toggle('positive', isPositive);
+    changeEl.classList.toggle('negative', !isPositive);
+    if (changeIcon) changeIcon.className = 'fas ' + (isPositive ? 'fa-arrow-up' : 'fa-arrow-down');
+    if (changePct) changePct.textContent = `${isPositive ? '+' : ''}${pct.toFixed(1)}%`;
+    if (changeSuffix) changeSuffix.textContent = 'vs. período anterior';
+
+    if (trendPill) {
+        trendPill.classList.remove('neutral');
+        trendPill.classList.toggle('negative', !isPositive);
+    }
+    if (trendText) trendText.textContent = isPositive ? 'Tendencia positiva' : 'Tendencia negativa';
+}
+
+function renderMonthSummaryChange(elId, pct, isExpense) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+
+    if (pct === null || pct === undefined || !isFinite(pct)) {
+        el.textContent = 'vs. período anterior';
+        el.style.color = '';
+        return;
+    }
+
+    const arrow = pct >= 0 ? '↑' : '↓';
+    el.textContent = `${arrow} ${Math.abs(pct).toFixed(0)}% vs. período anterior`;
+    // Para ingresos, subir es bueno (verde). Para gastos, subir es malo (rojo).
+    const isGood = isExpense ? pct <= 0 : pct >= 0;
+    el.style.color = isGood ? 'var(--success)' : 'var(--danger)';
+}
+
+function renderAiInsight(comparison) {
+    const el = document.getElementById('ai-insight-text');
+    if (!el) return;
+
+    const pct = comparison?.expenseChangePct;
+    if (pct === null || pct === undefined || !isFinite(pct)) {
+        el.textContent = 'Sigue registrando tus movimientos para ver un análisis de tu mes.';
+        return;
+    }
+
+    const rounded = Math.abs(Math.round(pct));
+    if (rounded === 0) {
+        el.textContent = 'Tus gastos se mantienen igual que el período pasado.';
+    } else if (pct < 0) {
+        el.textContent = `Este mes llevas un ${rounded}% menos en gastos que el período pasado. ¡Vas por buen camino!`;
+    } else {
+        el.textContent = `Este mes llevas un ${rounded}% más en gastos que el período pasado.`;
+    }
+}
+
 // ===== RENDERING =====
 async function renderDashboard() {
     console.log('Rendering Dashboard...');
-    const stats = await FinanzData.getDashboardStats(currentFilter);
-    console.log('Dashboard Stats:', stats);
+    const stats = await FinanzData.getDashboardStats(currentDashboardPeriod);
+    const comparison = await FinanzData.getPeriodComparison(currentDashboardPeriod);
+    console.log('Dashboard Stats:', stats, comparison);
 
-    // 1. Update Global Header & Patrimony Card (Lines 508-535)
-    // Note: Some IDs like 'period-income' may be duplicated.
+    // 1. Patrimonio y metricas principales
     const elements = {
         'total-balance': stats.totalBalance,
         'available-balance': stats.available,
         'saved-balance': stats.saved,
-        'period-income': stats.income, // This targets the FIRST instance (Patrimony Card)
+        'period-income': stats.income,
         'period-expense': stats.expense,
-        'remaining-budget': stats.budgetRemaining // This targets the Patrimony Card 'restante'
+        'remaining-budget': stats.budgetRemaining
     };
 
     for (const [id, value] of Object.entries(elements)) {
@@ -280,27 +394,24 @@ async function renderDashboard() {
         if (el) el.textContent = FinanzUtils.formatCurrency(value);
     }
 
-    // 2. Update Period Card (Lines 540-555)
-    // Fix: Validating selectors to target the specific card elements if IDs are duplicated or non-unique
-    const periodIncomeCard = document.getElementById('period-income-card');
-    if (periodIncomeCard) {
-        // Option A: If it has a span inside
-        const span = periodIncomeCard.querySelector('span');
-        if (span) span.textContent = FinanzUtils.formatCurrency(stats.income);
-        else periodIncomeCard.textContent = FinanzUtils.formatCurrency(stats.income);
+    // 2. Variacion de patrimonio vs. periodo anterior + pill de tendencia
+    renderPatrimonyChange(comparison);
+
+    // 3. Cambios de ingresos/gastos del mes (usa la misma comparacion real)
+    renderMonthSummaryChange('dash-income-change', comparison?.incomeChangePct, false);
+    renderMonthSummaryChange('dash-expense-change', comparison?.expenseChangePct, true);
+
+    // 4. Insight de Finia AI, basado en la variacion real de gastos
+    renderAiInsight(comparison);
+
+    // 5. Grafica de evolucion del patrimonio (datos reales reconstruidos
+    // del saldo actual + el ledger de transacciones del periodo)
+    const history = await FinanzData.getPatrimonyHistory(currentDashboardPeriod);
+    if (history.data.length > 0) {
+        FinanzCharts.createPatrimonyChart('patrimony-chart', history);
     }
 
-    // 3. Update Progress Bar (Lines 147-151 in original JS logic, likely in Patrimony or Header)
-    const progressText = document.querySelector('.progress-text span');
-    if (progressText) progressText.textContent = `${stats.budgetPercentUsed}% usado`;
-
-    const progressFill = document.querySelector('.progress-fill');
-    if (progressFill) progressFill.style.width = `${stats.budgetPercentUsed}%`;
-
-    // 4. Update Financial Summary Cards (Lines 595-617)
-    // Using specific IDs since they are unique in this section: 'daily-average' and 'budget-remaining'
-    // 4. Update Financial Summary Cards (Lines 595-617)
-    // Using specific IDs since they are unique in this section: 'daily-average' and 'budget-remaining'
+    // 6. Resumen Financiero Rapido (Promedio Diario / Presupuesto restante)
     const dailyAvgEl = document.getElementById('daily-average');
     const dailyGoalEl = document.getElementById('daily-goal');
 
@@ -381,40 +492,39 @@ async function renderDashboardPockets() {
 
     if (pockets.length === 0) {
         list.innerHTML = `
-            <div onclick="openModal('modal-add-pocket')" style="background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: var(--border-radius-lg); padding: 1rem; min-width: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
-                <i class="fas fa-plus-circle" style="font-size: 1.5rem; color: var(--accent-primary); margin-bottom: 0.5rem;"></i>
-                <span style="font-size: 0.85rem; font-weight: 500;">Crear Meta</span>
+            <div class="pocket-card-new" style="min-width: 100%;" onclick="openModal('modal-add-pocket')">
+                <i class="fas fa-plus-circle"></i>
+                <span>Crear meta</span>
             </div>
         `;
     } else {
-        // AÃ±adir tarjeta de "Crear Nuevo" al principio
+        // Añadir tarjeta de "Crear Nuevo" al principio
         let html = `
-            <div onclick="openModal('modal-add-pocket')" style="background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: var(--border-radius-lg); padding: 1rem; min-width: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
-                <i class="fas fa-plus" style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 0.5rem;"></i>
-                <span style="font-size: 0.8rem; color: var(--text-secondary);">Nuevo</span>
+            <div class="pocket-card-new" onclick="openModal('modal-add-pocket')">
+                <i class="fas fa-plus"></i>
+                <span>Nuevo</span>
             </div>
         `;
 
         html += pockets.map(p => {
             const percentage = Math.min(100, (p.current_amount / p.target_amount) * 100).toFixed(0);
+            const color = p.color || 'var(--accent-primary)';
             return `
-                <div class="dashboard-pocket-card animate-fade-in" style="position: relative; background: var(--bg-card); padding: 1rem; border-radius: var(--border-radius-lg); min-width: 160px; border: 1px solid var(--border-color); flex-shrink: 0; display: flex; flex-direction: column; justify-content: space-between;">
-                    <button onclick="event.stopPropagation(); openDepositModal('${p.id}', '${p.name}')" style="position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; background: rgba(0,0,0,0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; color: var(--text-primary); transition: background 0.2s; z-index: 2;">
-                        <i class="fas fa-plus" style="font-size: 0.8rem;"></i>
+                <div class="pocket-card animate-fade-in" onclick="openPockets()">
+                    <button class="pocket-card-deposit-btn" onclick="event.stopPropagation(); openDepositModal('${p.id}', '${p.name}')">
+                        <i class="fas fa-plus"></i>
                     </button>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; padding-right: 25px;">
-                        <span style="font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">${p.name}</span>
-                        <i class="fas ${p.icon || 'fa-piggy-bank'}" style="color: ${p.color || 'var(--accent-primary)'};"></i>
-                    </div>
-                    
-                    <div style="margin-bottom: 0.5rem;">
-                        <div style="font-size: 1.1rem; font-weight: 700;">${FinanzUtils.formatCurrency(p.current_amount)}</div>
-                        <div style="font-size: 0.7rem; color: var(--text-secondary);">de ${FinanzUtils.formatCurrency(p.target_amount)}</div>
+
+                    <div class="pocket-card-header">
+                        <span class="pocket-card-name">${p.name}</span>
+                        <i class="fas ${p.icon || 'fa-piggy-bank'}" style="color: ${color};"></i>
                     </div>
 
-                    <div style="height: 6px; background: var(--bg-primary); border-radius: 10px; overflow: hidden;">
-                        <div style="height: 100%; width: ${percentage}%; background-color: ${p.color || 'var(--accent-primary)'}; border-radius: 10px;"></div>
+                    <div class="pocket-card-amount">${FinanzUtils.formatCurrency(p.current_amount)}</div>
+                    <div class="pocket-card-target">de ${FinanzUtils.formatCurrency(p.target_amount)} · ${percentage}%</div>
+
+                    <div class="pocket-card-progress-track">
+                        <div class="pocket-card-progress-fill" style="width: ${percentage}%; background-color: ${color};"></div>
                     </div>
                 </div>
             `;
@@ -1092,6 +1202,15 @@ function updateUserProfileUI() {
     const headerInitials = document.getElementById('user-initials');
     if (headerInitials) headerInitials.textContent = initials;
 
+    // 2b. Saludo del dashboard segun la hora del dia
+    const dashGreeting = document.getElementById('dash-greeting');
+    if (dashGreeting) {
+        const hour = new Date().getHours();
+        const timeGreeting = hour < 12 ? 'Buenos días' : (hour < 19 ? 'Buenas tardes' : 'Buenas noches');
+        const firstName = userName.split(' ')[0];
+        dashGreeting.textContent = `${timeGreeting}, ${firstName} 👋`;
+    }
+
     // 3. AI Assistant Greeting
     const assistantGreeting = document.getElementById('user-name');
     if (assistantGreeting) assistantGreeting.textContent = `Hola, ${userName}`;
@@ -1212,6 +1331,8 @@ window.setFilter = setFilter;
 window.setTransactionType = setTransactionType;
 window.setAnalysisType = setAnalysisType;
 window.changeCalendarMonth = changeCalendarMonth;
+window.setDashboardPeriod = setDashboardPeriod;
+window.toggleDashPeriodMenu = toggleDashPeriodMenu;
 window.openAssistant = () => openModal('modal-assistant');
 window.toggleSidebar = toggleSidebar;
 window.openSidebar = openSidebar;

@@ -87,13 +87,28 @@ function getDateRange(period) {
         case 'month':
             start.setMonth(start.getMonth() - 1);
             break;
+        case 'thisMonth':
+            start.setDate(1);
+            start.setHours(0, 0, 0, 0);
+            break;
         case '30days':
         default:
             start.setDate(start.getDate() - 30);
             break;
     }
-    
+
     return { start, end: now };
+}
+
+// Rango equivalente inmediatamente anterior a un periodo (misma duracion,
+// termina justo cuando empieza el periodo actual). Sirve para comparaciones
+// tipo "vs. periodo anterior" sin inventar datos: usa la misma duracion real.
+function getPreviousPeriodRange(period) {
+    const current = getDateRange(period);
+    const durationMs = current.end.getTime() - current.start.getTime();
+    const prevEnd = new Date(current.start.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - durationMs);
+    return { start: prevStart, end: prevEnd };
 }
 
 // ===== GENERADORES DE ID =====
@@ -251,6 +266,7 @@ window.FinanzUtils = {
     formatTime,
     formatRelativeDate,
     getDateRange,
+    getPreviousPeriodRange,
     generateId,
     isValidAmount,
     isValidDate,

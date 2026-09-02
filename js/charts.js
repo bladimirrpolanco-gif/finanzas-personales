@@ -354,11 +354,103 @@ function createSparkline(canvasId, data, color = '#CAFD0A') {
     });
 }
 
+// ===== GRÁFICA DE EVOLUCIÓN DEL PATRIMONIO (dashboard) =====
+function createPatrimonyChart(canvasId, data) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+
+    const existingChart = Chart.getChart(ctx);
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
+    gradient.addColorStop(0, 'rgba(202, 253, 10, 0.18)');
+    gradient.addColorStop(1, 'rgba(202, 253, 10, 0)');
+
+    return new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Patrimonio',
+                data: data.data,
+                borderColor: '#CAFD0A',
+                backgroundColor: gradient,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: '#CAFD0A',
+                pointHoverBorderColor: '#0A0A0A',
+                pointHoverBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#1A1A1A',
+                    titleColor: '#FFFFFF',
+                    bodyColor: '#FFFFFF',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    padding: 10,
+                    displayColors: false,
+                    callbacks: {
+                        label: function (context) {
+                            return FinanzUtils.formatCurrency(context.raw);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        maxTicksLimit: 5,
+                        color: 'rgba(255, 255, 255, 0.35)',
+                        font: { size: 10 }
+                    }
+                },
+                y: {
+                    display: true,
+                    position: 'left',
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.04)'
+                    },
+                    ticks: {
+                        maxTicksLimit: 4,
+                        color: 'rgba(255, 255, 255, 0.35)',
+                        font: { size: 10 },
+                        callback: function (value) {
+                            return FinanzUtils.formatCompact(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
 // Exportar funciones
 window.FinanzCharts = {
     createExpenseChart,
     createIncomeChart,
     createCategoryChart,
     createBudgetChart,
+    createPatrimonyChart,
     createSparkline
 };

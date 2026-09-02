@@ -491,6 +491,100 @@ class FinanzDataService {
         };
     }
 
+    // Comparacion contra el periodo equivalente inmediatamente anterior
+    // (misma duracion). Solo usa transacciones reales; si el periodo
+    // anterior no tiene datos para comparar, el cambio queda en null en
+    // vez de inventar un porcentaje.
+    async getPeriodComparison(period = 'thisMonth') {
+        if (!this.user) return null;
+
+        const accounts = await this.getAccounts();
+        const pockets = await this.getPockets();
+        const totalBalance = accounts.reduce((s, a) => s + parseFloat(a.balance), 0)
+            + pockets.reduce((s, p) => s + parseFloat(p.current_amount), 0);
+
+        const currentTxs = await this.getTransactions({ period });
+        const currentIncome = currentTxs.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount), 0);
+        const currentExpense = currentTxs.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount), 0);
+
+        const prevRange = FinanzUtils.getPreviousPeriodRange(period);
+        const toISO = (d) => d.toISOString().split('T')[0];
+        const prevTxs = await this.getTransactionsInRange(toISO(prevRange.start), toISO(prevRange.end));
+        const prevIncome = prevTxs.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount), 0);
+        const prevExpense = prevTxs.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount), 0);
+
+        const pct = (curr, prev) => (prev === 0 ? null : ((curr - prev) / Math.abs(prev)) * 100);
+
+        // El patrimonio al cierre del periodo anterior es, por definicion,
+        // el patrimonio actual menos el neto (ingresos-gastos) de este
+        // periodo: no hace falta reconstruir nada aparte para este dato.
+        const netCurrent = currentIncome - currentExpense;
+        const patrimonyBeforePeriod = totalBalance - netCurrent;
+
+        return {
+            totalBalance,
+            currentIncome,
+            currentExpense,
+            prevIncome,
+            prevExpense,
+            incomeChangePct: pct(currentIncome, prevIncome),
+            expenseChangePct: pct(currentExpense, prevExpense),
+            patrimonyChangePct: pct(totalBalance, patrimonyBeforePeriod)
+        };
+    }
+
+    // Reconstruye la evolucion diaria del patrimonio total (cuentas +
+    // bolsillos) a partir del saldo real actual y el neto ingreso-gasto
+    // de cada dia del ledger. No inventa numeros: el unico dato "fijo" es
+    // el saldo actual real, y cada dia anterior se deriva restando el neto
+    // real de ese dia.
+    // Nota: un deposito a un bolsillo financiado desde una cuenta se
+    // registra como gasto en el ledger (ver depositToPocket), aunque el
+    // patrimonio total no cambia realmente al mover dinero de una cuenta a
+    // un bolsillo propio. Es una limitacion conocida de los datos, no del
+    // calculo: puede verse una baja momentanea al ahorrar hacia una meta.
+    async getPatrimonyHistory(period = 'thisMonth') {
+        if (!this.user) return { labels: [], data: [] };
+
+        const accounts = await this.getAccounts();
+        const pockets = await this.getPockets();
+        const currentBalance = accounts.reduce((s, a) => s + parseFloat(a.balance), 0)
+            + pockets.reduce((s, p) => s + parseFloat(p.current_amount), 0);
+
+        const range = FinanzUtils.getDateRange(period);
+        const toISO = (d) => d.toISOString().split('T')[0];
+        const txs = await this.getTransactionsInRange(toISO(range.start), toISO(range.end));
+
+        const days = [];
+        const cursor = new Date(range.start);
+        cursor.setHours(0, 0, 0, 0);
+        const today = new Date(range.end);
+        today.setHours(0, 0, 0, 0);
+        while (cursor <= today) {
+            days.push(toISO(cursor));
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        if (days.length === 0) days.push(toISO(today));
+
+        const netByDay = {};
+        txs.forEach(t => {
+            const day = t.date.slice(0, 10);
+            const amount = parseFloat(t.amount);
+            netByDay[day] = (netByDay[day] || 0) + (t.type === 'income' ? amount : -amount);
+        });
+
+        const balances = new Array(days.length);
+        balances[days.length - 1] = currentBalance;
+        for (let i = days.length - 1; i > 0; i--) {
+            balances[i - 1] = balances[i] - (netByDay[days[i]] || 0);
+        }
+
+        return {
+            labels: days.map(d => FinanzUtils.formatDate(d, 'short')),
+            data: balances
+        };
+    }
+
     async getCategoryStats(type, period = '30days') {
         if (!this.user) return [];
         const txs = await this.getTransactions({ type, period });

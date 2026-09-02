@@ -553,17 +553,17 @@
                         <svg viewBox="0 0 512 512" fill="currentColor"><rect x="90" y="300" width="70" height="140" rx="16"/><rect x="190" y="230" width="70" height="210" rx="16"/><rect x="290" y="140" width="70" height="300" rx="16"/><circle cx="360" cy="100" r="36"/></svg>
                     </div>
                     <div class="header-title">
-                        <h1>Finia</h1>
-                        <span>Bienvenido de nuevo</span>
+                        <h1 id="dash-greeting">Hola 👋</h1>
+                        <span>Tu resumen financiero</span>
                     </div>
                 </div>
                 <div class="header-right">
-                    <button class="header-icon" onclick="openAssistant()">
-                        <i class="fas fa-robot"></i>
-                        <span class="badge">1</span>
-                    </button>
                     <button class="header-icon">
                         <i class="fas fa-bell"></i>
+                        <span class="badge">1</span>
+                    </button>
+                    <button class="header-icon" onclick="openAssistant()">
+                        <i class="fas fa-robot"></i>
                     </button>
                     <div class="header-avatar" id="user-initials">UD</div>
                 </div>
@@ -574,64 +574,83 @@
                 <div class="patrimony-card animate-fade-in-up">
                     <div class="patrimony-header">
                         <div class="patrimony-label">
-                            Patrimonio Total <i class="fas fa-eye"></i>
+                            Patrimonio total <i class="fas fa-eye"></i>
                         </div>
-                        <button class="patrimony-action" onclick="navigateTo('analysis')">
-                            <i class="fas fa-chart-line"></i> Gastando Más
-                        </button>
+                        <div class="dash-period-wrap">
+                            <button class="dash-period-btn" onclick="toggleDashPeriodMenu()" id="dash-period-btn">
+                                <span id="dash-period-label">Este mes</span> <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="dash-period-menu" id="dash-period-menu">
+                                <button type="button" class="active" onclick="setDashboardPeriod('thisMonth')">Este mes</button>
+                                <button type="button" onclick="setDashboardPeriod('week')">Esta semana</button>
+                                <button type="button" onclick="setDashboardPeriod('30days')">Últimos 30 días</button>
+                                <button type="button" onclick="setDashboardPeriod('today')">Hoy</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="patrimony-amount" id="total-balance">$0.00</div>
-                    <div class="patrimony-details">
-                        <div class="patrimony-item">
-                            <div class="patrimony-item-label">
-                                <i class="fas fa-circle"></i> Disponible
-                            </div>
-                            <div class="patrimony-item-value" id="available-balance">$0.00</div>
+                    <div class="patrimony-change-row">
+                        <div class="patrimony-change" id="patrimony-change">
+                            <i class="fas fa-arrow-up" id="patrimony-change-icon"></i> <span id="patrimony-change-pct">--</span>
+                            <span id="patrimony-change-suffix">vs. periodo anterior</span>
                         </div>
-                        <div class="patrimony-item">
-                            <div class="patrimony-item-label">
-                                <i class="fas fa-circle"></i> Ahorrado
-                            </div>
-                            <div class="patrimony-item-value accent" id="saved-balance" onclick="openPockets()">
-                                $0.00
-                            </div>
+                        <span class="patrimony-trend-pill" id="patrimony-trend-pill">
+                            <i class="fas fa-circle"></i> <span id="patrimony-trend-text">Tendencia positiva</span>
+                        </span>
+                    </div>
+
+                    <div class="patrimony-metrics-row">
+                        <div class="patrimony-metric">
+                            <div class="patrimony-metric-label"><i class="fas fa-circle"></i> Disponible</div>
+                            <div class="patrimony-metric-value" id="available-balance">$0.00</div>
                         </div>
-                        <div class="patrimony-item">
-                            <div class="patrimony-item-label">
-                                Ingresos del Periodo
-                            </div>
-                            <div class="patrimony-item-value success" id="period-income">$0.00</div>
+                        <div class="patrimony-metric">
+                            <div class="patrimony-metric-label"><i class="fas fa-circle accent-dot"></i> Ahorrado</div>
+                            <div class="patrimony-metric-value accent" id="saved-balance" onclick="openPockets()">$0.00</div>
                         </div>
-                        <div class="patrimony-item">
-                            <div class="patrimony-item-label">
-                                restante
-                            </div>
-                            <div class="patrimony-item-value" id="remaining-budget">$0.00</div>
+                        <div class="patrimony-metric">
+                            <div class="patrimony-metric-label"><i class="fas fa-circle"></i> Restante</div>
+                            <div class="patrimony-metric-value" id="remaining-budget">$0.00</div>
+                        </div>
+                    </div>
+
+                    <div class="patrimony-chart-block">
+                        <div class="patrimony-chart-title">Evolución del patrimonio</div>
+                        <div class="chart-wrapper patrimony-chart-wrapper">
+                            <canvas id="patrimony-chart"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <!-- Período Ingresos/Gastos -->
-                <div class="period-card animate-fade-in-up delay-100">
-                    <div class="period-item">
-                        <div class="period-label">
-                            <i class="fas fa-arrow-up"></i> Ingresos del Periodo
-                        </div>
-                        <div class="period-value income" id="period-income-card">
-                            <span id="period-income">$0.00</span>
-                        </div>
+                <!-- Resumen del mes: Ingresos / Gastos -->
+                <div class="month-summary-grid animate-fade-in-up delay-100">
+                    <div class="month-summary-card income">
+                        <div class="month-summary-icon"><i class="fas fa-arrow-up"></i></div>
+                        <div class="month-summary-label">Ingresos</div>
+                        <div class="month-summary-value" id="period-income">$0.00</div>
+                        <div class="month-summary-change" id="dash-income-change">vs. periodo anterior</div>
                     </div>
-                    <div class="period-item">
-                        <div class="period-label">
-                            <i class="fas fa-arrow-down"></i> Gastos del Periodo
-                        </div>
-                        <div class="period-value expense" id="period-expense">$0.00</div>
+                    <div class="month-summary-card expense">
+                        <div class="month-summary-icon"><i class="fas fa-arrow-down"></i></div>
+                        <div class="month-summary-label">Gastos</div>
+                        <div class="month-summary-value" id="period-expense">$0.00</div>
+                        <div class="month-summary-change" id="dash-expense-change">vs. periodo anterior</div>
                     </div>
+                </div>
+
+                <!-- Finia AI: insight -->
+                <div class="ai-insight-card animate-fade-in-up delay-150" id="ai-insight-card" onclick="openAssistant()">
+                    <div class="ai-insight-icon"><i class="fas fa-robot"></i></div>
+                    <div class="ai-insight-body">
+                        <div class="ai-insight-header">Finia AI <span class="ai-insight-badge">Insight</span></div>
+                        <p id="ai-insight-text">Sigue registrando tus movimientos para ver un análisis de tu mes.</p>
+                    </div>
+                    <i class="fas fa-chevron-right ai-insight-arrow"></i>
                 </div>
 
                 <!-- Acciones Rápidas -->
                 <section class="quick-actions animate-fade-in-up delay-200">
-                    <h2 class="quick-actions-title">Acciones Rápidas</h2>
+                    <h2 class="quick-actions-title">Acciones rápidas</h2>
                     <div class="quick-actions-grid">
                         <button class="quick-action" onclick="quickAction('expense')">
                             <div class="quick-action-icon">
@@ -657,17 +676,25 @@
                             </div>
                             <span class="quick-action-label">Cuentas</span>
                         </button>
-                        <button class="quick-action" onclick="quickAction('categories')">
-                            <div class="quick-action-icon">
-                                <i class="fas fa-tags"></i>
-                            </div>
-                            <span class="quick-action-label">Categorías</span>
-                        </button>
+                    </div>
+                </section>
+
+                <!-- Mis Bolsillos -->
+                <section class="dashboard-pockets animate-fade-in-up delay-300">
+                    <div class="section-header">
+                        <h2 class="section-title">Mis bolsillos</h2>
+                        <button class="btn-text" onclick="openPockets()">Ver todos <i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div id="dashboard-pockets-list" class="pockets-horizontal-list">
+                        <!-- Se renderiza dinámicamente -->
+                        <div class="empty-state" style="padding: 1rem; text-align: center; width: 100%; color: var(--text-muted); font-size: 0.9rem;">
+                            Cargando metas de ahorro...
+                        </div>
                     </div>
                 </section>
 
                 <!-- Resumen Financiero -->
-                <section class="financial-summary animate-fade-in-up delay-300">
+                <section class="financial-summary animate-fade-in-up delay-400">
                     <h2 class="financial-summary-title">Resumen Financiero Rápido</h2>
                     <div class="summary-cards">
                         <div class="summary-card">
@@ -687,26 +714,6 @@
                             <div class="summary-card-value" id="budget-remaining">$0.00</div>
                             <div class="summary-card-meta">Presupuesto</div>
                             <span class="summary-card-badge success" id="budget-percent">0% Usado</span>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- NUEVO: Sección de Bolsillos -->
-                <section class="dashboard-pockets animate-fade-in-up delay-400">
-                    <div class="section-header"
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h2 class="section-title" style="font-size: 1.1rem; font-weight: 700; margin: 0;">Mis Bolsillos
-                        </h2>
-                        <button class="btn-text" onclick="openPockets()"
-                            style="color: var(--accent-primary); font-weight: 600; font-size: 0.9rem; background: transparent; border: none; cursor: pointer;">Ver
-                            todos</button>
-                    </div>
-                    <div id="dashboard-pockets-list" class="pockets-horizontal-list"
-                        style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 10px; -webkit-overflow-scrolling: touch;">
-                        <!-- Se renderiza dinámicamente -->
-                        <div class="empty-state"
-                            style="padding: 1rem; text-align: center; width: 100%; color: var(--text-muted); font-size: 0.9rem;">
-                            Cargando metas de ahorro...
                         </div>
                     </div>
                 </section>
