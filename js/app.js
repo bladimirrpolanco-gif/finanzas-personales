@@ -402,6 +402,13 @@ async function renderDashboard() {
     const comparison = await FinanzData.getPeriodComparison(currentDashboardPeriod);
     console.log('Dashboard Stats:', stats, comparison);
 
+    // El presupuesto (y lo "restante" de el) es un concepto mensual: se
+    // calcula SIEMPRE sobre el mes en curso completo, sin importar el
+    // periodo que tengas seleccionado arriba (Hoy/Semana/Mes/30 dias).
+    const monthToDateStats = currentDashboardPeriod === 'thisMonth'
+        ? stats
+        : await FinanzData.getDashboardStats('thisMonth');
+
     // 1. Patrimonio y metricas principales
     const elements = {
         'total-balance': stats.totalBalance,
@@ -409,7 +416,7 @@ async function renderDashboard() {
         'saved-balance': stats.saved,
         'period-income': stats.income,
         'period-expense': stats.expense,
-        'remaining-budget': stats.budgetRemaining
+        'remaining-budget': monthToDateStats.budgetRemaining
     };
 
     for (const [id, value] of Object.entries(elements)) {
@@ -424,15 +431,8 @@ async function renderDashboard() {
     renderMonthSummaryChange('dash-income-change', comparison?.incomeChangePct, false);
     renderMonthSummaryChange('dash-expense-change', comparison?.expenseChangePct, true);
 
-    // 3b. Barra de progreso de Gastos: el presupuesto es un concepto
-    // mensual, asi que SIEMPRE se calcula sobre el gasto del mes en curso
-    // (independiente del periodo que tengas seleccionado arriba). Si se
-    // calculara con el periodo seleccionado (ej. "Hoy"), el % saldria casi
-    // siempre cerca de 0 y cambiaria de forma confusa entre periodos.
-    const monthToDateStats = currentDashboardPeriod === 'thisMonth'
-        ? stats
-        : await FinanzData.getDashboardStats('thisMonth');
-
+    // 3b. Barra de progreso de Gastos, con el mismo gasto del mes en curso
+    // ya calculado arriba (evita pedirlo dos veces).
     if (monthToDateStats.monthlyBudget > 0) {
         const usedPct = parseFloat(monthToDateStats.budgetPercentUsed);
         renderMonthSummaryProgress('expense', usedPct, 'del presupuesto usado este mes');
@@ -493,16 +493,17 @@ async function renderDashboard() {
     const budgetMetaEl = budgetRemainingEl ? budgetRemainingEl.parentElement.querySelector('.summary-card-meta') : null;
 
     if (budgetRemainingEl) {
-        if (stats.monthlyBudget > 0) {
-            // Standard View (Has Budget)
-            budgetRemainingEl.textContent = FinanzUtils.formatCurrency(stats.budgetRemaining);
+        if (monthToDateStats.monthlyBudget > 0) {
+            // Standard View (Has Budget) - siempre sobre el mes en curso,
+            // igual que la barra de Gastos y el "Restante" de Patrimonio.
+            budgetRemainingEl.textContent = FinanzUtils.formatCurrency(monthToDateStats.budgetRemaining);
 
             if (budgetLabelEl) budgetLabelEl.textContent = 'Restante';
             if (budgetMetaEl) budgetMetaEl.textContent = 'Presupuesto';
 
             if (budgetPercentEl) {
-                budgetPercentEl.textContent = `${stats.budgetPercentUsed}% Usado`;
-                budgetPercentEl.className = 'summary-card-badge ' + (parseFloat(stats.budgetPercentUsed) > 90 ? 'danger' : 'success');
+                budgetPercentEl.textContent = `${monthToDateStats.budgetPercentUsed}% Usado`;
+                budgetPercentEl.className = 'summary-card-badge ' + (parseFloat(monthToDateStats.budgetPercentUsed) > 90 ? 'danger' : 'success');
                 budgetPercentEl.onclick = null;
                 budgetPercentEl.style.cursor = 'default';
             }
