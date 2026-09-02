@@ -267,6 +267,74 @@
     gap: var(--spacing-md);
 }
 
+/* ===== AUTH SCREEN ===== */
+.auth-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    padding: var(--spacing-2xl) var(--spacing-lg);
+    background:
+        radial-gradient(500px 360px at 50% 0%, var(--accent-glow), transparent 70%),
+        var(--bg-primary);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-normal);
+}
+
+.auth-screen.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.auth-content {
+    width: 100%;
+    max-width: 380px;
+    margin: 0 auto;
+}
+
+.auth-logo {
+    width: 84px;
+    height: 84px;
+    margin: 0 auto var(--spacing-lg);
+    box-shadow: var(--shadow-accent);
+}
+
+.auth-logo svg {
+    width: 55%;
+    height: 55%;
+}
+
+.auth-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    text-align: center;
+    color: var(--accent-primary);
+    letter-spacing: -1px;
+}
+
+.auth-subtitle {
+    text-align: center;
+    color: var(--text-primary);
+    opacity: 0.6;
+    margin-top: var(--spacing-xs);
+    margin-bottom: var(--spacing-2xl);
+}
+
+.auth-submit {
+    box-shadow: var(--shadow-accent);
+}
+
+.auth-note {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-lg);
+}
+
 /* ===== CHIPS ===== */
 .chip {
     display: inline-flex;

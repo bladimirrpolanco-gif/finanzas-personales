@@ -72,17 +72,13 @@
 </head>
 
 <body>
-    <div id="auth-overlay" class="modal-overlay modal-centered active"
-        style="z-index: 9999; background: var(--bg-primary);">
-        <div class="modal"
-            style="max-width: 400px; transform: translateY(0); border-radius: var(--border-radius-xl); padding: var(--spacing-xl);">
-            <div class="text-center mb-lg">
-                <div class="header-logo" style="margin: 0 auto 15px; width: 60px; height: 60px;">
-                    <svg viewBox="0 0 512 512" fill="currentColor"><rect x="120" y="290" width="56" height="110" rx="12"/><rect x="200" y="230" width="56" height="170" rx="12"/><rect x="280" y="160" width="56" height="240" rx="12"/><circle cx="336" cy="128" r="26"/></svg>
-                </div>
-                <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--accent-primary);">Finia</h2>
-                <p class="text-muted">Gestiona tus finanzas en la nube</p>
+    <div id="auth-overlay" class="auth-screen active">
+        <div class="auth-content">
+            <div class="header-logo auth-logo">
+                <svg viewBox="0 0 512 512" fill="currentColor"><rect x="120" y="290" width="56" height="110" rx="12"/><rect x="200" y="230" width="56" height="170" rx="12"/><rect x="280" y="160" width="56" height="240" rx="12"/><circle cx="336" cy="128" r="26"/></svg>
             </div>
+            <h2 class="auth-title">Finia</h2>
+            <p class="auth-subtitle">Gestiona tus finanzas en la nube</p>
 
             <form id="auth-form" onsubmit="handleAuth(event)">
                 <div class="form-group">
@@ -93,14 +89,14 @@
                     <label class="form-label">Contraseña</label>
                     <input type="password" id="auth-password" class="form-input" placeholder="••••••••" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block" id="auth-submit">
+                <button type="submit" class="btn btn-primary btn-block auth-submit" id="auth-submit">
                     <i class="fas fa-sign-in-alt"></i> Entrar
                 </button>
             </form>
 
             <p id="auth-error" class="text-danger text-center mt-md" style="font-size: 0.85rem; display: none;"></p>
 
-            <div class="mt-lg text-center" style="font-size: 0.8rem; color: var(--text-muted);">
+            <div class="auth-note">
                 <p>Al entrar, se creará una cuenta automáticamente si no tienes una.</p>
             </div>
         </div>

@@ -88,7 +88,7 @@ function setupAuthUi() {
         btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
     }
 
-    const info = document.querySelector('#auth-overlay .mt-lg p');
+    const info = document.querySelector('#auth-overlay .auth-note p');
     if (info) {
         info.textContent = 'Solo los usuarios autorizados por el administrador pueden entrar.';
     }
