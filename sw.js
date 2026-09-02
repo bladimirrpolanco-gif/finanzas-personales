@@ -3,9 +3,14 @@
  * Permite funcionamiento offline y cacheo de recursos
  */
 
-const CACHE_NAME = 'finanzapp-v8';
-const STATIC_CACHE = 'finanzapp-static-v8';
-const DYNAMIC_CACHE = 'finanzapp-dynamic-v8';
+const CACHE_NAME = 'finanzapp-v9';
+const STATIC_CACHE = 'finanzapp-static-v9';
+const DYNAMIC_CACHE = 'finanzapp-dynamic-v9';
+
+// Dominio de la API (Supabase): nunca se debe cachear, contiene datos
+// por-usuario (auth, cuentas, transacciones) identificados solo por el
+// header Authorization, que el Service Worker no distingue en la cache key.
+const API_HOST = 'uwkmrkllvplmjkiiozso.supabase.co';
 
 // Archivos a cachear inmediatamente
 const STATIC_ASSETS = [
@@ -87,6 +92,11 @@ self.addEventListener('fetch', (event) => {
 
     // Ignorar peticiones que no sean GET
     if (request.method !== 'GET') return;
+
+    // API de Supabase (auth + datos por-usuario): nunca interceptar.
+    // Dejar que el navegador la maneje directamente, siempre contra la red,
+    // para evitar servir la sesión/datos de un usuario anterior desde caché.
+    if (url.hostname === API_HOST) return;
 
     // HTML y navegación: siempre intentar red primero para evitar servir una app vieja
     if (isNavigationRequest(request)) {

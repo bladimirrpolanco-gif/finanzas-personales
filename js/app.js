@@ -814,6 +814,30 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove('active'), 3000);
 }
 
+// ===== ALERTAS DE PRESUPUESTO =====
+async function checkBudgetAlerts() {
+    try {
+        const stats = await FinanzData.getDashboardStats();
+        if (!stats || !(stats.monthlyBudget > 0)) return; // Sin presupuesto definido, nada que avisar
+
+        const percent = parseFloat(stats.budgetPercentUsed) || 0;
+        if (percent < 90) return;
+
+        // Avisar una sola vez por dÃ­a para no repetir el toast en cada login/cambio de sesiÃ³n
+        const alertKey = `budget-alert-shown-${new Date().toISOString().slice(0, 10)}`;
+        if (sessionStorage.getItem(alertKey)) return;
+        sessionStorage.setItem(alertKey, '1');
+
+        if (percent >= 100) {
+            showToast('Superaste tu presupuesto mensual', 'error');
+        } else {
+            showToast(`Ya usaste el ${stats.budgetPercentUsed}% de tu presupuesto mensual`, 'error');
+        }
+    } catch (err) {
+        console.error('checkBudgetAlerts error:', err);
+    }
+}
+
 function handleUrlParams() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'expense') setTimeout(() => openAddTransaction('expense'), 500);
