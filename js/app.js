@@ -355,7 +355,7 @@ function renderMonthSummaryChange(elId, pct, isExpense) {
 // Barra de progreso de las tarjetas de Ingresos/Gastos. `fillPct` y
 // `label` deben venir ya calculados de datos reales; si no hay dato
 // valido (null), la barra se oculta en vez de mostrar un 0% falso.
-function renderMonthSummaryProgress(prefix, fillPct, label) {
+function renderMonthSummaryProgress(prefix, fillPct, suffix) {
     const track = document.getElementById(`dash-${prefix}-progress-fill`)?.closest('.month-summary-progress-track');
     const fill = document.getElementById(`dash-${prefix}-progress-fill`);
     const labelEl = document.getElementById(`dash-${prefix}-progress-label`);
@@ -369,7 +369,10 @@ function renderMonthSummaryProgress(prefix, fillPct, label) {
 
     track.classList.add('visible');
     fill.style.width = `${Math.max(0, Math.min(100, fillPct))}%`;
-    labelEl.textContent = label;
+    // El numero resaltado en el color del tipo (verde ingreso, rojo gasto);
+    // el resto del texto queda en el tono apagado normal.
+    const pctColor = prefix === 'expense' ? 'var(--danger)' : 'var(--success)';
+    labelEl.innerHTML = `<span style="color: ${pctColor}; font-weight: 700;">${Math.round(fillPct)}%</span> ${suffix}`;
 }
 
 function renderAiInsight(comparison) {
@@ -426,14 +429,14 @@ async function renderDashboard() {
     // periodo anterior real, ya que no existe una "meta de ingresos".
     if (stats.monthlyBudget > 0) {
         const usedPct = parseFloat(stats.budgetPercentUsed);
-        renderMonthSummaryProgress('expense', usedPct, `${stats.budgetPercentUsed}% del presupuesto`);
+        renderMonthSummaryProgress('expense', usedPct, 'del presupuesto');
     } else {
         renderMonthSummaryProgress('expense', null, '');
     }
 
     if (comparison && comparison.prevIncome > 0) {
         const incomeVsPrevPct = (comparison.currentIncome / comparison.prevIncome) * 100;
-        renderMonthSummaryProgress('income', incomeVsPrevPct, `${incomeVsPrevPct.toFixed(0)}% del período anterior`);
+        renderMonthSummaryProgress('income', incomeVsPrevPct, 'del presupuesto');
     } else {
         renderMonthSummaryProgress('income', null, '');
     }
