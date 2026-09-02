@@ -625,17 +625,19 @@
                 <!-- Resumen del mes: Ingresos / Gastos -->
                 <div class="month-summary-grid animate-fade-in-up delay-100">
                     <div class="month-summary-card income">
-                        <div class="month-summary-icon"><i class="fas fa-arrow-up"></i></div>
+                        <div class="month-summary-header">
+                            <div class="month-summary-icon"><i class="fas fa-arrow-up"></i></div>
+                            <i class="fas fa-info-circle month-summary-info" title="Ingresos del período seleccionado"></i>
+                        </div>
                         <div class="month-summary-label">Ingresos</div>
                         <div class="month-summary-value" id="period-income">$0.00</div>
                         <div class="month-summary-change" id="dash-income-change">vs. periodo anterior</div>
-                        <div class="month-summary-progress-track">
-                            <div class="month-summary-progress-fill" id="dash-income-progress-fill"></div>
-                        </div>
-                        <div class="month-summary-progress-label" id="dash-income-progress-label"></div>
                     </div>
                     <div class="month-summary-card expense">
-                        <div class="month-summary-icon"><i class="fas fa-arrow-down"></i></div>
+                        <div class="month-summary-header">
+                            <div class="month-summary-icon"><i class="fas fa-arrow-down"></i></div>
+                            <i class="fas fa-info-circle month-summary-info" title="% de tu presupuesto mensual usado hasta hoy"></i>
+                        </div>
                         <div class="month-summary-label">Gastos</div>
                         <div class="month-summary-value" id="period-expense">$0.00</div>
                         <div class="month-summary-change" id="dash-expense-change">vs. periodo anterior</div>

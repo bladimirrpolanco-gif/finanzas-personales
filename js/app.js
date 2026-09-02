@@ -424,22 +424,25 @@ async function renderDashboard() {
     renderMonthSummaryChange('dash-income-change', comparison?.incomeChangePct, false);
     renderMonthSummaryChange('dash-expense-change', comparison?.expenseChangePct, true);
 
-    // 3b. Barras de progreso: Gastos usa el presupuesto mensual real
-    // (Ajustes > Presupuesto); Ingresos compara contra lo ganado en el
-    // periodo anterior real, ya que no existe una "meta de ingresos".
-    if (stats.monthlyBudget > 0) {
-        const usedPct = parseFloat(stats.budgetPercentUsed);
-        renderMonthSummaryProgress('expense', usedPct, 'del presupuesto');
+    // 3b. Barra de progreso de Gastos: el presupuesto es un concepto
+    // mensual, asi que SIEMPRE se calcula sobre el gasto del mes en curso
+    // (independiente del periodo que tengas seleccionado arriba). Si se
+    // calculara con el periodo seleccionado (ej. "Hoy"), el % saldria casi
+    // siempre cerca de 0 y cambiaria de forma confusa entre periodos.
+    const monthToDateStats = currentDashboardPeriod === 'thisMonth'
+        ? stats
+        : await FinanzData.getDashboardStats('thisMonth');
+
+    if (monthToDateStats.monthlyBudget > 0) {
+        const usedPct = parseFloat(monthToDateStats.budgetPercentUsed);
+        renderMonthSummaryProgress('expense', usedPct, 'del presupuesto usado este mes');
     } else {
         renderMonthSummaryProgress('expense', null, '');
     }
 
-    if (comparison && comparison.prevIncome > 0) {
-        const incomeVsPrevPct = (comparison.currentIncome / comparison.prevIncome) * 100;
-        renderMonthSummaryProgress('income', incomeVsPrevPct, 'del presupuesto');
-    } else {
-        renderMonthSummaryProgress('income', null, '');
-    }
+    // No hay barra para Ingresos: no existe un concepto real de "meta de
+    // ingresos" en la app, y compararlo contra el periodo anterior daba
+    // numeros que parecian un presupuesto sin serlo (confuso).
 
     // 4. Insight de Finia AI, basado en la variacion real de gastos
     renderAiInsight(comparison);

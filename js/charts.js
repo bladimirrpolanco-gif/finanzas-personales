@@ -380,7 +380,11 @@ function createPatrimonyChart(canvasId, data) {
                 borderWidth: 2,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 0,
+                // Con 1-2 puntos (ej. periodo "Hoy", o recien empezando el
+                // mes) una linea no se puede dibujar y con radio 0 no se ve
+                // absolutamente nada. Mostramos un punto visible en ese caso.
+                pointRadius: data.data.length <= 2 ? 4 : 0,
+                pointBackgroundColor: '#CAFD0A',
                 pointHoverRadius: 5,
                 pointHoverBackgroundColor: '#CAFD0A',
                 pointHoverBorderColor: '#0A0A0A',
