@@ -192,11 +192,14 @@ img {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .header-logo {
     width: 40px;
     height: 40px;
+    flex-shrink: 0;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
@@ -216,22 +219,33 @@ img {
 .header-title {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .header-title h1 {
     font-size: var(--font-size-lg);
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .header-title span {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .header-right {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
+    flex-shrink: 0;
 }
 
 .header-icon {
