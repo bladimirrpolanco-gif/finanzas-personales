@@ -35,6 +35,22 @@ function formatCompact(amount) {
     return formatCurrency(amount);
 }
 
+// Convierte un Date a su fecha calendario LOCAL en formato "YYYY-MM-DD",
+// SIN pasar por UTC. `date.toISOString().split('T')[0]` es la trampa
+// clasica aca: toISOString() primero convierte a UTC, y en un timezone
+// detras de UTC (ej. Republica Dominicana, UTC-4) cualquier hora local
+// desde las 8:00pm en adelante ya cae en el dia siguiente en UTC. Un
+// Date construido a las 23:59:59.999 locales (fin de dia/mes/semana)
+// se convierte directo al dia siguiente. Usar SIEMPRE esta funcion (no
+// toISOString) para mandar una fecha local a una columna DATE de Supabase.
+function toLocalISODate(date) {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // ===== FORMATEO DE FECHAS =====
 function formatDate(date, format = 'short') {
     const d = new Date(date);
@@ -298,6 +314,7 @@ window.FinanzUtils = {
     formatDate,
     formatTime,
     formatRelativeDate,
+    toLocalISODate,
     getDateRange,
     getPreviousPeriodRange,
     generateId,

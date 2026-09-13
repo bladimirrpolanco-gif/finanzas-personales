@@ -322,8 +322,8 @@ class FinanzDataService {
 
         const period = filters.period || '30days';
         const range = FinanzUtils.getDateRange(period);
-        query = query.gte('date', range.start.toISOString().split('T')[0])
-            .lte('date', range.end.toISOString().split('T')[0]);
+        query = query.gte('date', FinanzUtils.toLocalISODate(range.start))
+            .lte('date', FinanzUtils.toLocalISODate(range.end));
 
         const { data } = await query;
         return data || [];
@@ -355,7 +355,7 @@ class FinanzDataService {
                 category: tx.category,
                 title: tx.title,
                 amount: tx.amount,
-                date: tx.date || new Date().toISOString().split('T')[0],
+                date: tx.date || FinanzUtils.toLocalISODate(new Date()),
                 note: tx.note
             }])
             .select()
@@ -450,7 +450,7 @@ class FinanzDataService {
         // Inicializar todas las fechas en el rango con 0
         let curr = new Date(range.start);
         while (curr <= range.end) {
-            const dayStr = curr.toISOString().split('T')[0];
+            const dayStr = FinanzUtils.toLocalISODate(curr);
             groups[dayStr] = 0;
             curr.setDate(curr.getDate() + 1);
         }
@@ -519,7 +519,7 @@ class FinanzDataService {
         const currentExpense = currentTxs.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount), 0);
 
         const prevRange = FinanzUtils.getPreviousPeriodRange(period);
-        const toISO = (d) => d.toISOString().split('T')[0];
+        const toISO = FinanzUtils.toLocalISODate;
         const prevTxs = await this.getTransactionsInRange(toISO(prevRange.start), toISO(prevRange.end));
         const prevIncome = prevTxs.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount), 0);
         const prevExpense = prevTxs.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount), 0);
@@ -563,7 +563,7 @@ class FinanzDataService {
             + pockets.reduce((s, p) => s + parseFloat(p.current_amount), 0);
 
         const range = FinanzUtils.getDateRange(period);
-        const toISO = (d) => d.toISOString().split('T')[0];
+        const toISO = FinanzUtils.toLocalISODate;
         const txs = await this.getTransactionsInRange(toISO(range.start), toISO(range.end));
 
         // Guardamos tanto el string ISO (clave del ledger) como el Date local
@@ -655,7 +655,7 @@ class FinanzDataService {
         const prevWeekEnd = new Date(lastWeekStart.getTime() - 1);
         const prevWeekStart = mondayOfWeek(prevWeekEnd);
 
-        const toISO = (d) => d.toISOString().split('T')[0];
+        const toISO = FinanzUtils.toLocalISODate;
 
         const [lastWeekTxs, prevWeekTxs] = await Promise.all([
             this.getTransactionsInRange(toISO(lastWeekStart), toISO(lastWeekEnd)),
@@ -724,7 +724,7 @@ class FinanzDataService {
 
         // Resumen semanal (semana calendario ya cerrada)
         if (weeklyInsight.hasData) {
-            const toISO = (d) => d.toISOString().split('T')[0];
+            const toISO = FinanzUtils.toLocalISODate;
             const changeText = weeklyInsight.totalChangePct === null
                 ? ''
                 : `, un ${Math.abs(weeklyInsight.totalChangePct).toFixed(0)}% ${weeklyInsight.totalChangePct >= 0 ? 'más' : 'menos'} que la semana anterior`;
