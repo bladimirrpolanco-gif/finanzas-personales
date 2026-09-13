@@ -37,7 +37,10 @@ async function initApp() {
     // setupModals(); // Eliminado para evitar ReferenceError
     handleUrlParams();
     setupDesktopSidebar();
-    if (isLoggedIn) checkBudgetAlerts();
+    if (isLoggedIn) {
+        checkBudgetAlerts();
+        renderNotifications();
+    }
 }
 
 function setupAuthStateListener() {
@@ -59,6 +62,7 @@ function setupAuthStateListener() {
             updateUserProfileUI();
             await navigateTo('dashboard');
             checkBudgetAlerts();
+            renderNotifications();
             return;
         }
 
@@ -546,6 +550,9 @@ async function renderDashboard() {
 
     // Renderizar Bolsillos en Dashboard
     await renderDashboardPockets();
+
+    // Refrescar badge de notificaciones (presupuesto, metas, saldos, etc.)
+    renderNotifications();
 }
 
 async function renderDashboardPockets() {
@@ -1167,6 +1174,54 @@ async function checkBudgetAlerts() {
     }
 }
 
+// ===== NOTIFICACIONES =====
+async function renderNotifications() {
+    const badge = document.getElementById('notif-badge');
+    try {
+        const notifications = await FinanzData.getNotifications();
+
+        if (badge) {
+            if (notifications.length > 0) {
+                badge.textContent = notifications.length > 9 ? '9+' : notifications.length;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        const list = document.getElementById('notifications-list');
+        if (!list) return notifications;
+
+        if (notifications.length === 0) {
+            list.innerHTML = `
+                <div class="notif-empty">
+                    <i class="fas fa-circle-check"></i>
+                    Todo está en orden. No tienes alertas nuevas.
+                </div>`;
+        } else {
+            list.innerHTML = notifications.map(n => `
+                <div class="notif-item notif-${n.type}">
+                    <div class="notif-icon"><i class="fas ${n.icon}"></i></div>
+                    <div class="notif-content">
+                        <div class="notif-title">${n.title}</div>
+                        <div class="notif-message">${n.message}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        return notifications;
+    } catch (err) {
+        console.error('renderNotifications error:', err);
+        return [];
+    }
+}
+
+async function openNotifications() {
+    await renderNotifications();
+    openModal('modal-notifications');
+}
+
 function handleUrlParams() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'expense') setTimeout(() => openAddTransaction('expense'), 500);
@@ -1391,6 +1446,8 @@ window.setTxCategory = setTxCategory;
 window.openAddTransaction = openAddTransaction;
 window.assistantQuickAction = assistantQuickAction;
 window.sendAssistantMessage = sendAssistantMessage;
+window.openNotifications = openNotifications;
+window.renderNotifications = renderNotifications;
 window.setFilter = setFilter;
 window.setTransactionType = setTransactionType;
 window.setAnalysisType = setAnalysisType;

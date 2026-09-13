@@ -537,6 +537,23 @@
         </div>
     </div>
 
+    <!-- ===== MODAL: NOTIFICACIONES ===== -->
+    <div id="modal-notifications" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Notificaciones</h3>
+                <button class="modal-close" onclick="closeModal('modal-notifications')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="notifications-list" class="notif-list">
+                    <!-- Se renderiza dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
 
 
@@ -558,9 +575,9 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    <button class="header-icon">
+                    <button class="header-icon" onclick="openNotifications()">
                         <i class="fas fa-bell"></i>
-                        <span class="badge">1</span>
+                        <span class="badge" id="notif-badge" style="display: none;">0</span>
                     </button>
                     <button class="header-icon" onclick="openAssistant()">
                         <i class="fas fa-robot"></i>

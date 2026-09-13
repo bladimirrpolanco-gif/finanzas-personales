@@ -623,6 +623,99 @@ class FinanzDataService {
         return stats;
     }
 
+    // Genera alertas reales a partir de los datos actuales del usuario
+    // (presupuesto, cuentas, bolsillos, comparacion mensual). No inventa
+    // nada: cada notificacion depende de un umbral objetivo aplicado a un
+    // calculo que ya existe en otro lugar de la app (mismo dato que se ve
+    // en el dashboard).
+    async getNotifications() {
+        if (!this.user) return [];
+
+        const [stats, accounts, pockets, comparison] = await Promise.all([
+            this.getDashboardStats('thisMonth'),
+            this.getAccounts(),
+            this.getPockets(),
+            this.getPeriodComparison('thisMonth')
+        ]);
+
+        const notifications = [];
+
+        // Presupuesto mensual
+        if (stats.monthlyBudget > 0) {
+            const pct = parseFloat(stats.budgetPercentUsed);
+            if (pct >= 100) {
+                notifications.push({
+                    id: 'budget-over',
+                    type: 'danger',
+                    icon: 'fa-triangle-exclamation',
+                    title: 'Superaste tu presupuesto',
+                    message: `Ya usaste el ${pct}% de tu presupuesto de este mes.`
+                });
+            } else if (pct >= 80) {
+                notifications.push({
+                    id: 'budget-warning',
+                    type: 'warning',
+                    icon: 'fa-triangle-exclamation',
+                    title: 'Estás cerca de tu límite',
+                    message: `Llevas usado el ${pct}% de tu presupuesto mensual.`
+                });
+            }
+        }
+
+        // Cuentas en negativo
+        accounts.forEach(acc => {
+            const balance = parseFloat(acc.balance);
+            if (balance < 0) {
+                notifications.push({
+                    id: `account-negative-${acc.id}`,
+                    type: 'danger',
+                    icon: 'fa-circle-exclamation',
+                    title: `Cuenta "${acc.name}" en negativo`,
+                    message: `Tu saldo es ${FinanzUtils.formatCurrency(balance)}.`
+                });
+            }
+        });
+
+        // Bolsillos: meta alcanzada o cerca de alcanzarla
+        pockets.forEach(p => {
+            const target = parseFloat(p.target_amount || 0);
+            const current = parseFloat(p.current_amount || 0);
+            if (target > 0) {
+                const pct = (current / target) * 100;
+                if (pct >= 100) {
+                    notifications.push({
+                        id: `pocket-goal-${p.id}`,
+                        type: 'success',
+                        icon: 'fa-circle-check',
+                        title: '¡Meta alcanzada! 🎉',
+                        message: `Tu bolsillo "${p.name}" llegó a su meta de ${FinanzUtils.formatCurrency(target)}.`
+                    });
+                } else if (pct >= 90) {
+                    notifications.push({
+                        id: `pocket-close-${p.id}`,
+                        type: 'info',
+                        icon: 'fa-piggy-bank',
+                        title: 'Ya casi llegas',
+                        message: `Tu bolsillo "${p.name}" está al ${pct.toFixed(0)}% de su meta.`
+                    });
+                }
+            }
+        });
+
+        // Gasto mensual muy por encima del mes anterior
+        if (comparison && comparison.expenseChangePct !== null && comparison.expenseChangePct >= 20) {
+            notifications.push({
+                id: 'expense-spike',
+                type: 'warning',
+                icon: 'fa-arrow-trend-up',
+                title: 'Tus gastos subieron',
+                message: `Gastaste un ${comparison.expenseChangePct.toFixed(0)}% más que el mes pasado.`
+            });
+        }
+
+        return notifications;
+    }
+
     async logout() {
         // Limpiar almacenamiento local primero
         localStorage.clear();
