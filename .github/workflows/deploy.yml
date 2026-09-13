@@ -23,6 +23,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Cache-bust local CSS/JS references
+        # Los navegadores (y especialmente las PWA instaladas en el celular)
+        # cachean css/js por su URL. Si un deploy no cambia esa URL, algunos
+        # usuarios siguen viendo la version vieja hasta que el cache expira
+        # solo. Se agrega ?v=<sha corto> a cada referencia local para que
+        # cada deploy sea, para el navegador, un archivo "nuevo".
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          sed -i -E "s#(href=\"css/[a-zA-Z0-9_-]+\.css)\"#\1?v=${SHORT_SHA}\"#g" index.html
+          sed -i -E "s#(src=\"js/[a-zA-Z0-9_-]+\.js)\"#\1?v=${SHORT_SHA}\"#g" index.html
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
