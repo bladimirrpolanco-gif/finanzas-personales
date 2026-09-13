@@ -162,6 +162,25 @@ const CATEGORIES = {
     ]
 };
 
+// Recomendaciones genericas por categoria de gasto, usadas por el
+// resumen semanal inteligente (algoritmo por reglas, no una IA real).
+// Se eligen segun la categoria con mas gasto de la semana, no se
+// generan con ningun modelo.
+const CATEGORY_TIPS = {
+    food: 'Intenta cocinar más en casa y limitar los pedidos a domicilio esta semana.',
+    transport: 'Evalúa rutas más económicas, compartir viajes o usar transporte público cuando puedas.',
+    shopping: 'Antes de una compra no esencial, espera 24 horas para confirmar que realmente la necesitas.',
+    entertainment: 'Revisa tus suscripciones y planes de entretenimiento: cancela los que casi no uses.',
+    health: 'Si son gastos médicos recurrentes, revisa si un seguro o plan cubre parte de ese costo.',
+    bills: 'Compara tarifas de tus servicios (luz, internet, etc.) para ver si hay opciones más económicas.',
+    education: 'Busca si hay recursos gratuitos o becas que cubran parte de este gasto.',
+    other: 'Revisa el detalle de estos gastos: agrúpalos en una categoría más específica para verlos mejor.'
+};
+
+function getCategoryTip(categoryId) {
+    return CATEGORY_TIPS[categoryId] || 'Revisa estos gastos y evalúa cuáles puedes reducir esta semana.';
+}
+
 function getCategoryInfo(type, categoryId) {
     const categories = CATEGORIES[type] || CATEGORIES.expense;
     const found = categories.find(c => c.id === categoryId);
@@ -285,6 +304,7 @@ window.FinanzUtils = {
     isValidAmount,
     isValidDate,
     getCategoryInfo,
+    getCategoryTip,
     getAccountInfo,
     getPocketIcon,
     calculatePercentage,
@@ -295,6 +315,7 @@ window.FinanzUtils = {
     debounce,
     formatNumber,
     CATEGORIES,
+    CATEGORY_TIPS,
     ACCOUNT_TYPES,
     POCKET_ICONS,
     CHART_COLORS

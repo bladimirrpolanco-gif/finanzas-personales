@@ -2,6 +2,17 @@
  * Finia - Data Layer (Supabase Cloud)
  */
 
+// Lunes 00:00:00 (hora local) de la semana calendario a la que pertenece `date`.
+// Usado para armar semanas Lunes-Domingo en el resumen semanal.
+function mondayOfWeek(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay(); // 0=domingo ... 6=sabado
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    d.setDate(d.getDate() - diffToMonday);
+    return d;
+}
+
 class FinanzDataService {
     constructor() {
         this.client = window.supabaseClient;
@@ -623,6 +634,76 @@ class FinanzDataService {
         return stats;
     }
 
+    // Resumen semanal inteligente: no es una IA real, es un algoritmo por
+    // reglas sobre transacciones reales. Compara la ULTIMA semana calendario
+    // completa (Lunes-Domingo) contra la semana anterior a esa, encuentra la
+    // categoria donde mas se gasto, y da una recomendacion generica ligada a
+    // esa categoria (ver CATEGORY_TIPS en utils.js). Si la ultima semana
+    // completa no tiene gastos registrados, devuelve hasData:false en vez de
+    // inventar un resumen vacio.
+    async getWeeklySpendingInsight() {
+        if (!this.user) return { hasData: false };
+
+        const now = new Date();
+        const currentWeekStart = mondayOfWeek(now);
+
+        // Ultima semana calendario ya cerrada (la anterior a la que esta en curso)
+        const lastWeekEnd = new Date(currentWeekStart.getTime() - 1);
+        const lastWeekStart = mondayOfWeek(lastWeekEnd);
+
+        // Semana previa a esa, para poder comparar
+        const prevWeekEnd = new Date(lastWeekStart.getTime() - 1);
+        const prevWeekStart = mondayOfWeek(prevWeekEnd);
+
+        const toISO = (d) => d.toISOString().split('T')[0];
+
+        const [lastWeekTxs, prevWeekTxs] = await Promise.all([
+            this.getTransactionsInRange(toISO(lastWeekStart), toISO(lastWeekEnd)),
+            this.getTransactionsInRange(toISO(prevWeekStart), toISO(prevWeekEnd))
+        ]);
+
+        const lastWeekExpenses = lastWeekTxs.filter(t => t.type === 'expense');
+        if (lastWeekExpenses.length === 0) {
+            return { hasData: false };
+        }
+
+        const sumByCategory = (txs) => {
+            const totals = {};
+            txs.forEach(t => {
+                totals[t.category] = (totals[t.category] || 0) + parseFloat(t.amount);
+            });
+            return totals;
+        };
+
+        const lastWeekByCategory = sumByCategory(lastWeekExpenses);
+        const prevWeekByCategory = sumByCategory(prevWeekTxs.filter(t => t.type === 'expense'));
+
+        const totalLastWeek = Object.values(lastWeekByCategory).reduce((s, v) => s + v, 0);
+        const totalPrevWeek = Object.values(prevWeekByCategory).reduce((s, v) => s + v, 0);
+
+        const topCategoryId = Object.entries(lastWeekByCategory).sort((a, b) => b[1] - a[1])[0][0];
+        const topCategoryAmount = lastWeekByCategory[topCategoryId];
+        const topCategoryInfo = FinanzUtils.getCategoryInfo('expense', topCategoryId);
+        const topCategoryPercent = totalLastWeek > 0 ? Math.round((topCategoryAmount / totalLastWeek) * 100) : 0;
+
+        const totalChangePct = totalPrevWeek > 0 ? ((totalLastWeek - totalPrevWeek) / totalPrevWeek) * 100 : null;
+
+        return {
+            hasData: true,
+            weekStart: lastWeekStart,
+            weekEnd: lastWeekEnd,
+            totalExpense: totalLastWeek,
+            totalChangePct,
+            topCategory: {
+                id: topCategoryId,
+                name: topCategoryInfo.name,
+                amount: topCategoryAmount,
+                percent: topCategoryPercent
+            },
+            tip: FinanzUtils.getCategoryTip(topCategoryId)
+        };
+    }
+
     // Genera alertas reales a partir de los datos actuales del usuario
     // (presupuesto, cuentas, bolsillos, comparacion mensual). No inventa
     // nada: cada notificacion depende de un umbral objetivo aplicado a un
@@ -631,14 +712,31 @@ class FinanzDataService {
     async getNotifications() {
         if (!this.user) return [];
 
-        const [stats, accounts, pockets, comparison] = await Promise.all([
+        const [stats, accounts, pockets, comparison, weeklyInsight] = await Promise.all([
             this.getDashboardStats('thisMonth'),
             this.getAccounts(),
             this.getPockets(),
-            this.getPeriodComparison('thisMonth')
+            this.getPeriodComparison('thisMonth'),
+            this.getWeeklySpendingInsight()
         ]);
 
         const notifications = [];
+
+        // Resumen semanal (semana calendario ya cerrada)
+        if (weeklyInsight.hasData) {
+            const toISO = (d) => d.toISOString().split('T')[0];
+            const changeText = weeklyInsight.totalChangePct === null
+                ? ''
+                : `, un ${Math.abs(weeklyInsight.totalChangePct).toFixed(0)}% ${weeklyInsight.totalChangePct >= 0 ? 'más' : 'menos'} que la semana anterior`;
+
+            notifications.push({
+                id: `weekly-digest-${toISO(weeklyInsight.weekStart)}`,
+                type: 'info',
+                icon: 'fa-chart-line',
+                title: 'Resumen de la semana pasada',
+                message: `Gastaste ${FinanzUtils.formatCurrency(weeklyInsight.totalExpense)}${changeText}. Tu categoría con más gasto fue ${weeklyInsight.topCategory.name} (${weeklyInsight.topCategory.percent}% del total). ${weeklyInsight.tip}`
+            });
+        }
 
         // Presupuesto mensual
         if (stats.monthlyBudget > 0) {

@@ -1234,7 +1234,18 @@ async function assistantQuickAction(action) {
 
     let response = "";
     switch (action) {
-        case 'analyze': response = "Analizando tus gastos... Veo que tu mayor gasto este mes es en Comida. ¡Podrías ahorrar RD$2,000 si reduces las salidas!"; break;
+        case 'analyze': {
+            const insight = await FinanzData.getWeeklySpendingInsight();
+            if (!insight.hasData) {
+                response = "Todavía no tengo suficientes gastos registrados la semana pasada para darte un análisis. Registra tus gastos y vuelve a intentarlo.";
+            } else {
+                const changeText = insight.totalChangePct === null
+                    ? ''
+                    : `, un ${Math.abs(insight.totalChangePct).toFixed(0)}% ${insight.totalChangePct >= 0 ? 'más' : 'menos'} que la semana anterior`;
+                response = `Analizando tu semana pasada... Gastaste ${FinanzUtils.formatCurrency(insight.totalExpense)}${changeText}. Tu mayor gasto fue en ${insight.topCategory.name} (${insight.topCategory.percent}% del total). ${insight.tip}`;
+            }
+            break;
+        }
         case 'add': closeModal('modal-assistant'); openAddTransaction('expense'); return;
         case 'budget': response = `Tu presupuesto mensual es de ${FinanzUtils.formatCurrency((await FinanzData.getSettings()).monthlyBudget)}. Te quedan ${FinanzUtils.formatCurrency((await FinanzData.getDashboardStats()).budgetRemaining)} para el resto del mes.`; break;
         case 'save': response = "Un consejo: Intenta la regla del 50/30/20. 50% Necesidades, 30% Deseos y 20% Ahorro."; break;
