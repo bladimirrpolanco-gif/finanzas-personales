@@ -1271,6 +1271,11 @@ function addChatMessage(text, side) {
     const chat = document.getElementById('assistant-chat');
     if (!chat) return;
 
+    // Una vez que hay una respuesta real, ocultamos el saludo y el menu de
+    // sugerencias: quitarlos de en medio deja ver la respuesta completa en
+    // vez de dejarla apretada en un pedacito de pantalla debajo del menu.
+    document.getElementById('modal-assistant')?.classList.add('chat-active');
+
     const msgDiv = document.createElement('div');
     msgDiv.className = `chat-message animate-fade-in ${side === 'user' ? 'user' : ''}`;
     msgDiv.innerHTML = `
@@ -1465,7 +1470,11 @@ window.setAnalysisType = setAnalysisType;
 window.changeCalendarMonth = changeCalendarMonth;
 window.setDashboardPeriod = setDashboardPeriod;
 window.toggleDashPeriodMenu = toggleDashPeriodMenu;
-window.openAssistant = () => openModal('modal-assistant');
+window.openAssistant = () => {
+    // Empezar siempre con el saludo y las sugerencias visibles al abrir
+    document.getElementById('modal-assistant')?.classList.remove('chat-active');
+    openModal('modal-assistant');
+};
 window.toggleSidebar = toggleSidebar;
 window.openSidebar = openSidebar;
 window.closeSidebar = closeSidebar;

@@ -1196,8 +1196,17 @@
 
 .assistant-chat {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding-bottom: var(--spacing-lg);
+}
+
+/* Una vez que la conversacion arranca (primera respuesta o mensaje),
+   ocultamos el saludo y el menu de sugerencias: en pantallas chicas
+   dejaban muy poco espacio visible para la respuesta del asistente. */
+#modal-assistant.chat-active .assistant-header,
+#modal-assistant.chat-active .assistant-suggestions {
+    display: none;
 }
 
 .chat-message {
@@ -1367,6 +1376,7 @@
 
 .assistant-chat {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding-bottom: var(--spacing-lg);
 }
