@@ -1237,12 +1237,12 @@ async function assistantQuickAction(action) {
         case 'analyze': {
             const insight = await FinanzData.getWeeklySpendingInsight();
             if (!insight.hasData) {
-                response = "Todavía no tengo suficientes gastos registrados la semana pasada para darte un análisis. Registra tus gastos y vuelve a intentarlo.";
+                response = "Todavía no tengo gastos registrados en los últimos 7 días para darte un análisis. Registra tus gastos y vuelve a intentarlo.";
             } else {
                 const changeText = insight.totalChangePct === null
                     ? ''
-                    : `, un ${Math.abs(insight.totalChangePct).toFixed(0)}% ${insight.totalChangePct >= 0 ? 'más' : 'menos'} que la semana anterior`;
-                response = `Analizando tu semana pasada... Gastaste ${FinanzUtils.formatCurrency(insight.totalExpense)}${changeText}. Tu mayor gasto fue en ${insight.topCategory.name} (${insight.topCategory.percent}% del total). ${insight.tip}`;
+                    : `, un ${Math.abs(insight.totalChangePct).toFixed(0)}% ${insight.totalChangePct >= 0 ? 'más' : 'menos'} que los 7 días anteriores`;
+                response = `Analizando tus últimos 7 días... Gastaste ${FinanzUtils.formatCurrency(insight.totalExpense)}${changeText}. Tu mayor gasto fue en ${insight.topCategory.name} (${insight.topCategory.percent}% del total). ${insight.tip}`;
             }
             break;
         }
