@@ -511,6 +511,84 @@ class FinanzDataService {
         }
     }
 
+    // ===== PRESUPUESTO POR CATEGORIA =====
+    // Tabla category_budgets (ver supabase/category_budgets.sql). El limite es
+    // mensual y se compara siempre contra el MES EN CURSO, igual que el
+    // presupuesto general.
+    async getCategoryBudgets() {
+        if (!this.user) return [];
+        const { data, error } = await this.client
+            .from('category_budgets')
+            .select('*');
+        if (error) throw new Error(error.message);
+        return data || [];
+    }
+
+    // entries: [{ category, amount }]. amount > 0 guarda/actualiza el limite;
+    // 0 o vacio lo quita.
+    async saveCategoryBudgets(entries) {
+        if (!this.user) return;
+
+        const toSave = entries
+            .filter(e => e.amount > 0)
+            .map(e => ({
+                user_id: this.user.id,
+                category: e.category,
+                monthly_amount: e.amount,
+                updated_at: new Date().toISOString()
+            }));
+        const toRemove = entries.filter(e => !(e.amount > 0)).map(e => e.category);
+
+        if (toSave.length > 0) {
+            const { error } = await this.client
+                .from('category_budgets')
+                .upsert(toSave, { onConflict: 'user_id,category' });
+            if (error) throw new Error(error.message);
+        }
+        if (toRemove.length > 0) {
+            const { error } = await this.client
+                .from('category_budgets')
+                .delete()
+                .in('category', toRemove);
+            if (error) throw new Error(error.message);
+        }
+    }
+
+    // Avance de cada presupuesto por categoria en el mes en curso, del mas
+    // consumido al menos. Los movimientos internos no cuentan como gasto.
+    async getCategoryBudgetStatus() {
+        if (!this.user) return [];
+
+        const budgets = await this.getCategoryBudgets();
+        if (budgets.length === 0) return [];
+
+        const now = new Date();
+        const first = new Date(now.getFullYear(), now.getMonth(), 1);
+        const txs = await this.getTransactionsInRange(
+            FinanzUtils.toLocalISODate(first),
+            FinanzUtils.toLocalISODate(now)
+        );
+
+        const spentBy = {};
+        txs.filter(t => t.type === 'expense').forEach(t => {
+            spentBy[t.category] = (spentBy[t.category] || 0) + parseFloat(t.amount);
+        });
+
+        return budgets
+            .map(b => {
+                const limit = parseFloat(b.monthly_amount);
+                const spent = spentBy[b.category] || 0;
+                return {
+                    category: b.category,
+                    label: FinanzUtils.getCategoryInfo('expense', b.category).name,
+                    limit,
+                    spent,
+                    pct: limit > 0 ? (spent / limit) * 100 : 0
+                };
+            })
+            .sort((a, b) => b.pct - a.pct);
+    }
+
     // ===== MOVIMIENTOS RECURRENTES =====
     // Definiciones en la tabla recurring_transactions (ver
     // supabase/recurring_transactions.sql). Cada vez que se abre la app,
@@ -936,15 +1014,30 @@ class FinanzDataService {
     async getNotifications() {
         if (!this.user) return [];
 
-        const [stats, accounts, pockets, comparison, weeklyInsight] = await Promise.all([
+        const [stats, accounts, pockets, comparison, weeklyInsight, categoryStatus] = await Promise.all([
             this.getDashboardStats('thisMonth'),
             this.getAccounts(),
             this.getPockets(),
             this.getPeriodComparison('thisMonth'),
-            this.getWeeklySpendingInsight()
+            this.getWeeklySpendingInsight(),
+            // Si la tabla de presupuestos por categoria aun no existe, simplemente no hay alertas de eso
+            this.getCategoryBudgetStatus().catch(() => [])
         ]);
 
         const notifications = [];
+
+        // Presupuestos por categoria (mes en curso)
+        categoryStatus.forEach(s => {
+            if (s.pct < 80) return;
+            const over = s.pct >= 100;
+            notifications.push({
+                id: `catbudget-${over ? 'over' : 'warning'}-${s.category}`,
+                type: over ? 'danger' : 'warning',
+                icon: 'fa-triangle-exclamation',
+                title: over ? `Superaste el presupuesto de ${s.label}` : `Cerca del límite en ${s.label}`,
+                message: `Llevas ${FinanzUtils.formatCurrency(s.spent)} de ${FinanzUtils.formatCurrency(s.limit)} este mes (${Math.round(s.pct)}%).`
+            });
+        });
 
         // Resumen de los ultimos 7 dias (ventana movil, ver getWeeklySpendingInsight)
         if (weeklyInsight.hasData) {

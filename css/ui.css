@@ -1135,6 +1135,64 @@
     min-height: 52px;
 }
 
+/* Presupuesto por categoria */
+.cat-budgets-list,
+.cat-budgets-progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.cat-budget-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.cat-budget-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+.cat-budget-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cat-budget-spent {
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    text-align: right;
+}
+
+.catbudget-track {
+    height: 8px;
+    background: var(--bg-input);
+    border-radius: var(--border-radius-full);
+    overflow: hidden;
+}
+
+.catbudget-fill {
+    height: 100%;
+    border-radius: var(--border-radius-full);
+    transition: width var(--transition-normal);
+}
+
+.catbudget-fill.ok {
+    background: var(--accent-primary);
+}
+
+.catbudget-fill.warn {
+    background: var(--warning);
+}
+
+.catbudget-fill.over {
+    background: var(--danger);
+}
+
 /* Gastos recurrentes */
 .recurring-intro {
     margin-bottom: var(--spacing-md);

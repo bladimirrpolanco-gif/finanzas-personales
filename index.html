@@ -623,9 +623,40 @@
                         Este monto se usará para calcular tu progreso diario y restante.</p>
                 </div>
 
+                <button type="button" class="btn btn-secondary btn-block" style="margin-bottom: var(--spacing-md);"
+                    onclick="openCategoryBudgets()">
+                    <i class="fas fa-layer-group"></i> Presupuesto por categoría
+                </button>
+
                 <div class="modal-footer" style="border: none; padding: 0;">
                     <button type="submit" class="btn btn-primary btn-block">
                         <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: PRESUPUESTO POR CATEGORÍA =====
+         Después de modal-budget en el DOM para abrirse por encima de él. -->
+    <div id="modal-cat-budgets" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Presupuesto por categoría</h3>
+                <button class="modal-close" onclick="closeModal('modal-cat-budgets')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-cat-budgets" class="modal-body" onsubmit="saveCategoryBudgets(event)">
+                <p class="recurring-intro">Pon un límite mensual a las categorías que quieras controlar. Déjalo
+                    vacío para no limitarla. Se compara con lo que gastas en el mes en curso y te avisamos al
+                    llegar al 80% y al 100%.</p>
+                <div id="cat-budgets-list" class="cat-budgets-list">
+                    <!-- Se renderiza dinámicamente -->
+                </div>
+                <div class="modal-footer" style="border: none; padding: 0; margin-top: var(--spacing-lg);">
+                    <button type="submit" class="btn btn-primary btn-block" id="cat-budgets-save">
+                        <i class="fas fa-save"></i> Guardar límites
                     </button>
                 </div>
             </form>
@@ -1103,6 +1134,10 @@
                         <canvas id="expense-chart"></canvas>
                     </div>
                 </div>
+
+                <!-- Avance del presupuesto por categoría (solo en la pestaña Presupuesto) -->
+                <div class="chart-container animate-fade-in-up" id="analysis-category-budgets"
+                    style="display: none; margin-top: var(--spacing-md);"></div>
 
                 <!-- Calendario de movimientos -->
                 <div class="chart-container animate-fade-in-up" id="analysis-calendar-container" style="display: none;">

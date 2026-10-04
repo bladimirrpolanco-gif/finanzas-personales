@@ -892,6 +892,10 @@ async function renderAnalysis() {
 }
 
 async function refreshAnalysisChart() {
+    // El avance por categoria solo se muestra en la pestana Presupuesto
+    const catBudgetsBox = document.getElementById('analysis-category-budgets');
+    if (catBudgetsBox) catBudgetsBox.style.display = 'none';
+
     if (currentAnalysisType === 'calendar') {
         await renderCalendar();
         return;
@@ -912,6 +916,7 @@ async function refreshAnalysisChart() {
             budget: stats.monthlyBudget,
             spent: stats.expense
         });
+        await renderCategoryBudgetsProgress();
     } else if (currentAnalysisType === 'categories') {
         if (chartTitle) chartTitle.textContent = `Distribución por Categorías (${periodName})`;
         const chartData = await FinanzData.getCategoryStats('expense', currentFilter);
@@ -1376,6 +1381,147 @@ async function openBudgetModal() {
     const budgetInput = document.getElementById('budget-amount');
     if (budgetInput) budgetInput.value = settings.monthlyBudget;
     openModal('modal-budget');
+}
+
+// ===== PRESUPUESTO POR CATEGORIA =====
+const CAT_BUDGET_SQL_HINT = 'La tabla de presupuestos por categoría todavía no existe en Supabase. Hay que correr supabase/category_budgets.sql.';
+
+function isMissingTableError(err) {
+    return /category_budgets|recurring_transactions|schema cache|does not exist/i.test(err?.message || '');
+}
+
+// Estado de la barra: normal, cerca del limite (80%) o pasado (100%)
+function budgetBarState(pct) {
+    return pct >= 100 ? 'over' : (pct >= 80 ? 'warn' : 'ok');
+}
+
+function monthRangeISO() {
+    const now = new Date();
+    return {
+        from: FinanzUtils.toLocalISODate(new Date(now.getFullYear(), now.getMonth(), 1)),
+        to: FinanzUtils.toLocalISODate(now)
+    };
+}
+
+async function openCategoryBudgets() {
+    openModal('modal-cat-budgets');
+    const list = document.getElementById('cat-budgets-list');
+    const saveBtn = document.getElementById('cat-budgets-save');
+    list.innerHTML = '<div class="empty-state"><p>Cargando...</p></div>';
+    saveBtn.disabled = true;
+
+    const { from, to } = monthRangeISO();
+    let budgets, txs;
+    try {
+        [budgets, txs] = await Promise.all([
+            FinanzData.getCategoryBudgets(),
+            FinanzData.getTransactionsInRange(from, to)
+        ]);
+    } catch (err) {
+        console.error('openCategoryBudgets error:', err);
+        list.innerHTML = `<div class="empty-state"><p>${isMissingTableError(err)
+            ? CAT_BUDGET_SQL_HINT
+            : 'No se pudieron cargar los presupuestos: ' + escapeHTML(err.message)}</p></div>`;
+        return;
+    }
+
+    const limitBy = Object.fromEntries(budgets.map(b => [b.category, parseFloat(b.monthly_amount)]));
+    const spentBy = {};
+    txs.filter(t => t.type === 'expense').forEach(t => {
+        spentBy[t.category] = (spentBy[t.category] || 0) + parseFloat(t.amount);
+    });
+
+    // Categorias estandar + las que el usuario escribio a mano en "Otros"
+    // (las que ya tienen limite o ya tuvieron gastos este mes)
+    const standard = FinanzUtils.CATEGORIES.expense.map(c => ({ id: c.id, label: c.name }));
+    const known = new Set(standard.map(c => c.id));
+    const custom = [...new Set([...Object.keys(limitBy), ...Object.keys(spentBy)])]
+        .filter(c => !known.has(c))
+        .map(c => ({ id: c, label: c }));
+
+    list.innerHTML = [...standard, ...custom].map(c => {
+        const limit = limitBy[c.id] || 0;
+        const spent = spentBy[c.id] || 0;
+        const pct = limit > 0 ? (spent / limit) * 100 : 0;
+        return `
+        <div class="cat-budget-row">
+            <div class="cat-budget-head">
+                <span class="cat-budget-name">${escapeHTML(c.label)}</span>
+                <span class="cat-budget-spent">Este mes: ${FinanzUtils.formatCurrency(spent)}</span>
+            </div>
+            <input type="number" class="form-input cat-budget-input" data-category="${escapeHTML(c.id)}"
+                data-had-limit="${limit > 0 ? '1' : ''}" min="0" step="0.01" inputmode="decimal"
+                placeholder="Sin límite" value="${limit > 0 ? limit : ''}">
+            ${limit > 0 ? `<div class="catbudget-track"><div class="catbudget-fill ${budgetBarState(pct)}" style="width: ${Math.min(100, pct)}%"></div></div>` : ''}
+        </div>`;
+    }).join('');
+    saveBtn.disabled = false;
+}
+
+async function saveCategoryBudgets(e) {
+    if (e) e.preventDefault();
+
+    // Solo se envian las que tienen limite ahora o lo tenian antes (para quitarlo)
+    const entries = [...document.querySelectorAll('#cat-budgets-list .cat-budget-input')]
+        .map(input => ({
+            category: input.dataset.category,
+            amount: parseFloat(input.value) || 0,
+            hadLimit: input.dataset.hadLimit === '1'
+        }))
+        .filter(en => en.amount > 0 || en.hadLimit)
+        .map(({ category, amount }) => ({ category, amount }));
+
+    try {
+        await FinanzData.saveCategoryBudgets(entries);
+        closeModal('modal-cat-budgets');
+        showToast('Presupuestos por categoría guardados');
+        if (currentPage === 'analysis') await renderAnalysis();
+        renderNotifications();
+    } catch (err) {
+        console.error('saveCategoryBudgets error:', err);
+        showToast('Error al guardar: ' + err.message, 'error');
+    }
+}
+
+// Avance de cada presupuesto por categoria (Analisis -> pestana Presupuesto)
+async function renderCategoryBudgetsProgress() {
+    const box = document.getElementById('analysis-category-budgets');
+    if (!box) return;
+    box.style.display = 'block';
+
+    const header = '<h3 class="chart-title">Por categoría (este mes)</h3>';
+    let status;
+    try {
+        status = await FinanzData.getCategoryBudgetStatus();
+    } catch (err) {
+        box.innerHTML = `${header}<p class="recurring-intro">${isMissingTableError(err)
+            ? CAT_BUDGET_SQL_HINT
+            : 'No se pudo cargar: ' + escapeHTML(err.message)}</p>`;
+        return;
+    }
+
+    if (status.length === 0) {
+        box.innerHTML = `${header}
+            <p class="recurring-intro">Aún no has puesto límites por categoría (por ejemplo, Comida: 8,000 al mes).</p>
+            <button type="button" class="btn btn-primary btn-block" onclick="openCategoryBudgets()">
+                <i class="fas fa-layer-group"></i> Definir límites
+            </button>`;
+        return;
+    }
+
+    box.innerHTML = `${header}
+        <div class="cat-budgets-progress">${status.map(s => `
+            <div class="cat-budget-row">
+                <div class="cat-budget-head">
+                    <span class="cat-budget-name">${escapeHTML(s.label)}</span>
+                    <span class="cat-budget-spent">${FinanzUtils.formatCurrency(s.spent)} de ${FinanzUtils.formatCurrency(s.limit)} · ${Math.round(s.pct)}%</span>
+                </div>
+                <div class="catbudget-track"><div class="catbudget-fill ${budgetBarState(s.pct)}" style="width: ${Math.min(100, s.pct)}%"></div></div>
+            </div>`).join('')}
+        </div>
+        <button type="button" class="btn btn-secondary btn-block mt-md" onclick="openCategoryBudgets()">
+            <i class="fas fa-pen"></i> Editar límites
+        </button>`;
 }
 
 async function renderAccountsList() {
@@ -2095,6 +2241,8 @@ window.toggleTxFilters = toggleTxFilters;
 window.onTxRangeChange = onTxRangeChange;
 window.clearTxFilters = clearTxFilters;
 window.exportTransactionsCSV = exportTransactionsCSV;
+window.openCategoryBudgets = openCategoryBudgets;
+window.saveCategoryBudgets = saveCategoryBudgets;
 window.openRecurring = openRecurring;
 window.openRecurringForm = openRecurringForm;
 window.saveRecurring = saveRecurring;
