@@ -769,6 +769,18 @@
                 </button>
             </div>
             <div class="modal-body">
+                <!-- Invitación a activar las notificaciones push (solo si aún no están activas) -->
+                <div id="notif-push-card" class="notif-push-card" hidden>
+                    <div class="notif-icon"><i class="fas fa-bell"></i></div>
+                    <div class="notif-content">
+                        <div class="notif-title">Activa las notificaciones</div>
+                        <div class="notif-message" id="notif-push-text"></div>
+                        <button type="button" id="notif-push-btn" class="btn btn-primary" onclick="activatePushFromPrompt()">
+                            Activar notificaciones
+                        </button>
+                    </div>
+                </div>
+
                 <div id="notifications-list" class="notif-list">
                     <!-- Se renderiza dinámicamente -->
                 </div>
@@ -809,6 +821,22 @@
             </header>
 
             <main class="app-content">
+                <!-- Invitación a activar las notificaciones push (solo si aún no están activas) -->
+                <div id="push-prompt" class="push-prompt" hidden>
+                    <div class="push-prompt-icon"><i class="fas fa-bell"></i></div>
+                    <div class="push-prompt-body">
+                        <strong>Activa los avisos en tu celular</strong>
+                        <p>Te avisamos si te acercas a tu presupuesto y te mandamos un resumen cada lunes.</p>
+                        <div class="push-prompt-actions">
+                            <button type="button" class="btn btn-primary" onclick="activatePushFromPrompt()">Activar</button>
+                            <button type="button" class="btn-text" onclick="dismissPushPrompt()">Ahora no</button>
+                        </div>
+                    </div>
+                    <button type="button" class="push-prompt-close" aria-label="Cerrar" onclick="dismissPushPrompt()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
                 <!-- Card Patrimonio -->
                 <div class="patrimony-card animate-fade-in-up">
                     <div class="patrimony-header">

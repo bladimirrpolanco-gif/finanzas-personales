@@ -1135,6 +1135,98 @@
     min-height: 52px;
 }
 
+/* Invitacion a activar notificaciones push: banner en Inicio y tarjeta en la campana */
+.push-prompt,
+.notif-push-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    background: #121412;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+}
+
+.push-prompt {
+    position: relative;
+    margin-bottom: var(--spacing-md);
+}
+
+.notif-push-card {
+    margin-bottom: var(--spacing-md);
+}
+
+.push-prompt[hidden],
+.notif-push-card[hidden] {
+    display: none;
+}
+
+.push-prompt-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: var(--border-radius-md);
+    background: var(--bg-input);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-primary);
+    font-size: 1.1rem;
+}
+
+.notif-push-card .notif-icon {
+    background: var(--bg-input);
+    color: var(--accent-primary);
+}
+
+.push-prompt-body {
+    flex: 1;
+    min-width: 0;
+    padding-right: var(--spacing-lg);
+}
+
+.push-prompt-body strong {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.push-prompt-body p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.push-prompt-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.push-prompt-actions .btn,
+.notif-push-card .btn {
+    padding: 8px 16px;
+    font-size: var(--font-size-sm);
+}
+
+.notif-push-card .btn {
+    margin-top: var(--spacing-md);
+}
+
+.push-prompt-close {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    padding: 6px 8px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
 /* Botones deshabilitados (ej. "Activar notificaciones" sin soporte) */
 .btn:disabled {
     opacity: 0.45;

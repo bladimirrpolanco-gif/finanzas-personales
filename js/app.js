@@ -561,6 +561,9 @@ async function renderDashboard() {
 
     // Refrescar badge de notificaciones (presupuesto, metas, saldos, etc.)
     renderNotifications();
+
+    // Banner para activar las notificaciones push (solo si aun no estan activas)
+    renderPushPrompts();
 }
 
 async function renderDashboardPockets() {
@@ -1738,6 +1741,7 @@ async function renderNotifications() {
 
 async function openNotifications() {
     await renderNotifications();
+    renderPushPrompts();
     openModal('modal-notifications');
 }
 
@@ -2146,6 +2150,9 @@ async function renderPushStatus() {
 
     // Mantener al dia la fila de este dispositivo en la base de datos
     if (enabled) FinanzData.savePushSubscription(info.subscription.toJSON()).catch(() => {});
+
+    // Si se activa/desactiva desde Perfil, el banner y la tarjeta se ponen al dia
+    renderPushPrompts();
     return info;
 }
 
@@ -2225,6 +2232,76 @@ async function sendTestPush() {
         showToast('Error: ' + err.message, 'error');
     } finally {
         btn.disabled = false;
+    }
+}
+
+// ----- Invitacion a activar los avisos: banner en Inicio + tarjeta en la campana -----
+const PUSH_PROMPT_KEY = 'finia-push-prompt-dismissed';
+const PUSH_PROMPT_SNOOZE_MS = 14 * 24 * 60 * 60 * 1000; // "Ahora no" calla el banner 14 dias
+
+function pushPromptSnoozed() {
+    try {
+        const at = parseInt(localStorage.getItem(PUSH_PROMPT_KEY) || '0', 10);
+        return at > 0 && Date.now() - at < PUSH_PROMPT_SNOOZE_MS;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Muestra u oculta el banner de Inicio y la tarjeta de la campana segun el
+// estado real de las notificaciones. Solo se ofrecen cuando se pueden activar
+// (soportadas, con clave, sin bloquear y aun no activas); en iPhone sin
+// instalar la tarjeta explica como instalar, sin boton.
+async function renderPushPrompts() {
+    let info;
+    try {
+        info = await getPushState();
+    } catch (e) {
+        return; // si no se puede saber el estado, mejor no mostrar nada
+    }
+    pushStateCache = info;
+
+    const banner = document.getElementById('push-prompt');
+    if (banner) banner.hidden = !(info.state === 'disabled' && !pushPromptSnoozed());
+
+    const card = document.getElementById('notif-push-card');
+    if (card) {
+        const show = info.state === 'disabled' || info.state === 'ios-install';
+        card.hidden = !show;
+        if (show) {
+            document.getElementById('notif-push-text').textContent = info.state === 'ios-install'
+                ? info.message
+                : 'Recibe avisos en tu celular aunque la app esté cerrada: tu resumen semanal y alertas de tu presupuesto.';
+            document.getElementById('notif-push-btn').style.display = info.state === 'disabled' ? 'block' : 'none';
+        }
+    }
+}
+
+function dismissPushPrompt() {
+    try {
+        localStorage.setItem(PUSH_PROMPT_KEY, String(Date.now()));
+    } catch (e) { /* sin almacenamiento: el banner volvera en la proxima visita */ }
+    const banner = document.getElementById('push-prompt');
+    if (banner) banner.hidden = true;
+}
+
+async function activatePushFromPrompt() {
+    if (!('Notification' in window)) return;
+
+    // Igual que en togglePush: el permiso se pide de inmediato, dentro del clic.
+    const permissionPromise = Notification.permission === 'default'
+        ? Notification.requestPermission()
+        : Promise.resolve(Notification.permission);
+
+    try {
+        await enablePush(await permissionPromise);
+    } catch (err) {
+        console.error('activatePushFromPrompt error:', err);
+        showToast('Error: ' + err.message, 'error');
+    } finally {
+        await renderPushPrompts();
+        const settings = document.getElementById('modal-push');
+        if (settings && settings.classList.contains('active')) await renderPushStatus();
     }
 }
 
@@ -2387,6 +2464,8 @@ window.toggleTxFilters = toggleTxFilters;
 window.onTxRangeChange = onTxRangeChange;
 window.clearTxFilters = clearTxFilters;
 window.exportTransactionsCSV = exportTransactionsCSV;
+window.activatePushFromPrompt = activatePushFromPrompt;
+window.dismissPushPrompt = dismissPushPrompt;
 window.openPushSettings = openPushSettings;
 window.togglePush = togglePush;
 window.sendTestPush = sendTestPush;
