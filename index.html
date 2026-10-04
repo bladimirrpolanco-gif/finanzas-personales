@@ -148,11 +148,38 @@
         <span class="toast-message">Mensaje</span>
     </div>
 
+    <!-- ===== MODAL: MOVIMIENTOS DE UN DÍA (calendario) =====
+         Va ANTES del formulario de transacción para que éste (mismo z-index,
+         después en el DOM) se abra por encima. -->
+    <div id="modal-day" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="day-modal-title">Movimientos del día</h3>
+                <button class="modal-close" onclick="closeModal('modal-day')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="day-tx-list" class="day-tx-list">
+                    <!-- Se renderiza dinámicamente -->
+                </div>
+                <div class="day-modal-actions">
+                    <button type="button" class="btn btn-primary" onclick="addTransactionForSelectedDay('expense')">
+                        <i class="fas fa-minus"></i> Gasto
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="addTransactionForSelectedDay('income')">
+                        <i class="fas fa-plus"></i> Ingreso
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== MODAL: AGREGAR TRANSACCIÓN ===== -->
     <div id="modal-add-transaction" class="modal-overlay modal-centered">
         <div class="modal">
             <div class="modal-header">
-                <h3 class="modal-title">Nueva Transacción</h3>
+                <h3 class="modal-title" id="tx-modal-title">Nueva Transacción</h3>
                 <button class="modal-close" onclick="closeModal('modal-add-transaction')">
                     <i class="fas fa-times"></i>
                 </button>
@@ -160,6 +187,7 @@
             <form id="form-transaction" class="modal-body" onsubmit="saveTransaction(event)">
                 <input type="hidden" id="tx-type" value="expense">
                 <input type="hidden" id="tx-category" value="other">
+                <input type="hidden" id="tx-id" value="">
 
                 <div class="tabs tx-type-tabs">
                     <button type="button" class="tab tx-type-tab active" data-tx-type="expense"
@@ -210,7 +238,7 @@
 
                 <div class="modal-footer" style="border: none; padding: 0;">
                     <button type="submit" class="btn btn-primary btn-block">
-                        <i class="fas fa-check"></i> Guardar
+                        <i class="fas fa-check"></i> <span id="tx-submit-label">Guardar</span>
                     </button>
                 </div>
             </form>
@@ -945,7 +973,7 @@
                     <div class="calendar-grid" id="calendar-grid">
                         <!-- Se renderiza dinámicamente -->
                     </div>
-                    <p class="calendar-hint">Toca un día para añadir un gasto o ingreso en esa fecha.</p>
+                    <p class="calendar-hint">Toca un día para ver sus movimientos o añadir uno en esa fecha.</p>
                 </div>
             </main>
         </div>

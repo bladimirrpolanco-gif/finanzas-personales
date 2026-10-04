@@ -1135,6 +1135,70 @@
     min-height: 52px;
 }
 
+/* Ventana "movimientos del dia" (calendario) */
+.day-tx-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.day-tx-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+}
+
+.day-tx-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.day-tx-info .transaction-title,
+.day-tx-info .transaction-category {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.day-tx-item .transaction-amount {
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.day-tx-actions {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.day-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+.tx-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 5px;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+}
+
+.tx-action-btn:hover {
+    color: var(--accent-primary);
+}
+
+.day-tx-actions .tx-action-btn:last-child:hover {
+    color: var(--danger);
+}
+
 .tx-type-tabs {
     margin-bottom: var(--spacing-md);
 }

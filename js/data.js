@@ -384,6 +384,80 @@ class FinanzDataService {
         return newTx;
     }
 
+    async getTransactionById(id) {
+        if (!this.user) return null;
+        const { data } = await this.client
+            .from('transactions')
+            .select('*')
+            .eq('id', id)
+            .single();
+        return data || null;
+    }
+
+    // Suma `delta` (puede ser negativo) al saldo de una cuenta.
+    async _applyBalanceDelta(accountId, delta) {
+        if (!accountId || !delta) return;
+        const { data: account } = await this.client
+            .from('accounts')
+            .select('balance')
+            .eq('id', accountId)
+            .single();
+        if (!account) return;
+
+        await this.client
+            .from('accounts')
+            .update({ balance: parseFloat(account.balance) + delta })
+            .eq('id', accountId);
+    }
+
+    // Edita un movimiento y deja los saldos consistentes: se revierte el efecto
+    // del movimiento viejo en su cuenta y se aplica el del nuevo (que puede ser
+    // otro monto, otro tipo u otra cuenta). Los movimientos internos
+    // (transferencias / depositos a bolsillo) no se editan: tienen una
+    // contraparte (la otra cuenta o el bolsillo) que quedaria descuadrada.
+    async updateTransaction(id, changes) {
+        if (!this.user) return null;
+
+        const old = await this.getTransactionById(id);
+        if (!old) throw new Error('No se encontró el movimiento');
+        if (FinanzUtils.isInternalMovement(old)) {
+            throw new Error('Las transferencias y depósitos a bolsillos no se pueden editar. Elimínalos y créalos de nuevo.');
+        }
+
+        const { data: updated, error } = await this.client
+            .from('transactions')
+            .update({
+                account_id: changes.accountId,
+                type: changes.type,
+                category: changes.category,
+                title: changes.title,
+                amount: changes.amount,
+                date: changes.date,
+                note: changes.note
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('updateTransaction Error:', error);
+            throw new Error(error.message);
+        }
+
+        const effect = (type, amount) => (type === 'income' ? amount : -amount);
+        const oldEffect = effect(old.type, parseFloat(old.amount));
+        const newEffect = effect(changes.type, changes.amount);
+
+        if (old.account_id === changes.accountId) {
+            await this._applyBalanceDelta(changes.accountId, newEffect - oldEffect);
+        } else {
+            await this._applyBalanceDelta(old.account_id, -oldEffect);
+            await this._applyBalanceDelta(changes.accountId, newEffect);
+        }
+
+        return updated;
+    }
+
     async deleteTransaction(id) {
         if (!this.user) return false;
 

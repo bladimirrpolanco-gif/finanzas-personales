@@ -649,6 +649,9 @@ async function renderTransactions() {
                 <div class="transaction-amount ${internal ? 'text-muted' : (t.type === 'income' ? 'text-success' : 'text-danger')}" style="font-weight: 600;">
                     ${t.type === 'income' ? '+' : '-'}${FinanzUtils.formatCurrency(t.amount)}
                 </div>
+                ${internal ? '' : `<button type="button" class="tx-action-btn" onclick="event.stopPropagation(); openEditTransaction('${t.id}')" aria-label="Editar">
+                    <i class="fas fa-pen"></i>
+                </button>`}
                 <button onclick="event.stopPropagation(); handleDeleteTransaction('${t.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 5px; font-size: 0.95rem; transition: color 0.2s;" onmouseover="this.style.color='#ff4444'" onmouseout="this.style.color='var(--text-muted)'">
                     <i class="fas fa-trash-alt"></i>
                 </button>
@@ -901,8 +904,20 @@ function setTxType(type) {
 // calendario) el formulario abre con esa fecha; si no, con la de hoy. No se
 // permiten fechas futuras: el saldo de la cuenta cambia al guardar, y un
 // movimiento de manana no deberia afectar el saldo de hoy.
+// Deja el formulario en modo "nuevo" o "editar" (editId = id del movimiento) y
+// lo limpia: antes los campos conservaban lo escrito en el movimiento anterior.
+function resetTxForm(editId = null) {
+    const form = document.getElementById('form-transaction');
+    if (form) form.reset();
+
+    document.getElementById('tx-id').value = editId || '';
+    document.getElementById('tx-modal-title').textContent = editId ? 'Editar Transacción' : 'Nueva Transacción';
+    document.getElementById('tx-submit-label').textContent = editId ? 'Guardar cambios' : 'Guardar';
+}
+
 async function openAddTransaction(type = 'expense', dateISO = null) {
     await fillAccountSelects(['tx-account']);
+    resetTxForm();
     setTxType(type);
 
     const todayISO = FinanzUtils.toLocalISODate(new Date());
@@ -915,9 +930,110 @@ async function openAddTransaction(type = 'expense', dateISO = null) {
     openModal('modal-add-transaction');
 }
 
-// Tocar un dia del calendario: abrir el formulario con ese dia ya elegido.
-function openCalendarDay(dateISO) {
-    openAddTransaction('expense', dateISO);
+// Abre el formulario con los datos de un movimiento existente para editarlo.
+async function openEditTransaction(id) {
+    const tx = await FinanzData.getTransactionById(id);
+    if (!tx) {
+        showToast('No se encontró el movimiento', 'error');
+        return;
+    }
+    if (FinanzUtils.isInternalMovement(tx)) {
+        showToast('Las transferencias y depósitos a bolsillos no se pueden editar', 'error');
+        return;
+    }
+
+    await fillAccountSelects(['tx-account']);
+    resetTxForm(tx.id);
+    setTxType(tx.type);
+
+    // La categoria se guarda como id ("food") o, si eligio "Otros" y escribio
+    // su propio nombre, como ese texto.
+    const isStandard = FinanzUtils.CATEGORIES[tx.type].some(c => c.id === tx.category);
+    if (isStandard) {
+        setTxCategory(tx.category);
+    } else {
+        setTxCategory('other');
+        document.getElementById('tx-category-other').value = tx.category;
+    }
+
+    const todayISO = FinanzUtils.toLocalISODate(new Date());
+    document.getElementById('tx-amount').value = tx.amount;
+    document.getElementById('tx-title').value = tx.title;
+    document.getElementById('tx-note').value = tx.note || '';
+    document.getElementById('tx-account').value = tx.account_id;
+    const dateInput = document.getElementById('tx-date');
+    dateInput.max = todayISO;
+    dateInput.value = String(tx.date).slice(0, 10);
+
+    openModal('modal-add-transaction');
+}
+
+// Despues de crear/editar/borrar un movimiento: refrescar la pagina actual y,
+// si la ventana de "movimientos del dia" esta abierta, su lista tambien.
+async function refreshAfterTxChange() {
+    await navigateTo(currentPage);
+    const dayModal = document.getElementById('modal-day');
+    if (dayModal && dayModal.classList.contains('active')) await renderDayModal();
+}
+
+// ===== MOVIMIENTOS DE UN DIA (desde el calendario) =====
+let selectedCalendarDate = null;
+
+// Tocar un dia del calendario: ver sus movimientos y poder anadir/editar/borrar.
+async function openCalendarDay(dateISO) {
+    selectedCalendarDate = dateISO;
+    await renderDayModal();
+    openModal('modal-day');
+}
+
+async function renderDayModal() {
+    const dateISO = selectedCalendarDate;
+    if (!dateISO) return;
+
+    const title = document.getElementById('day-modal-title');
+    if (title) title.textContent = FinanzUtils.formatDate(dateISO, 'long');
+
+    const list = document.getElementById('day-tx-list');
+    if (!list) return;
+
+    // includeInternal: aqui SI se ven (con icono neutro) para que el dia
+    // muestre todo lo que paso, aunque no cuenten como gasto/ingreso.
+    const txs = await FinanzData.getTransactionsInRange(dateISO, dateISO, { includeInternal: true });
+
+    if (txs.length === 0) {
+        list.innerHTML = '<div class="empty-state"><p>No hay movimientos este día.</p></div>';
+        return;
+    }
+
+    list.innerHTML = txs.map(t => {
+        const internal = FinanzUtils.isInternalMovement(t);
+        const sign = t.type === 'income' ? '+' : '-';
+        const amountClass = internal ? 'text-muted' : (t.type === 'income' ? 'text-success' : 'text-danger');
+        const editBtn = internal ? '' : `
+                <button type="button" class="tx-action-btn" onclick="openEditTransaction('${t.id}')" aria-label="Editar">
+                    <i class="fas fa-pen"></i>
+                </button>`;
+        return `
+        <div class="day-tx-item">
+            <div class="transaction-icon ${internal ? '' : (t.type === 'income' ? 'bg-success' : 'bg-danger')}">
+                <i class="fas fa-${internal ? 'right-left' : (t.type === 'income' ? 'arrow-up' : 'arrow-down')}"></i>
+            </div>
+            <div class="day-tx-info">
+                <div class="transaction-title">${t.title}</div>
+                <div class="transaction-category">${t.category}</div>
+            </div>
+            <div class="transaction-amount ${amountClass}">${sign}${FinanzUtils.formatCurrency(t.amount)}</div>
+            <div class="day-tx-actions">${editBtn}
+                <button type="button" class="tx-action-btn" onclick="handleDeleteTransaction('${t.id}')" aria-label="Eliminar">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function addTransactionForSelectedDay(type) {
+    openAddTransaction(type, selectedCalendarDate);
 }
 
 function setTxCategory(catId) {
@@ -986,11 +1102,14 @@ async function saveTransaction(e) {
     };
 
     try {
-        const result = await FinanzData.addTransaction(tx);
+        const editId = document.getElementById('tx-id').value;
+        const result = editId
+            ? await FinanzData.updateTransaction(editId, tx)
+            : await FinanzData.addTransaction(tx);
         if (result) {
             closeModal('modal-add-transaction');
-            showToast('¡Movimiento guardado!');
-            await navigateTo(currentPage);
+            showToast(editId ? '¡Movimiento actualizado!' : '¡Movimiento guardado!');
+            await refreshAfterTxChange();
         } else {
             throw new Error('No se pudo guardar la transacción');
         }
@@ -1161,7 +1280,7 @@ async function handleDeleteTransaction(id) {
             if (success) {
                 showToast('Transacción eliminada');
                 // Recargar datos globales y de la vista actual
-                await navigateTo(currentPage);
+                await refreshAfterTxChange();
             } else {
                 throw new Error('No se pudo completar la eliminación');
             }
@@ -1533,6 +1652,8 @@ window.openBudgetModal = openBudgetModal;
 window.setTxCategory = setTxCategory;
 window.setTxType = setTxType;
 window.openCalendarDay = openCalendarDay;
+window.openEditTransaction = openEditTransaction;
+window.addTransactionForSelectedDay = addTransactionForSelectedDay;
 window.openAddTransaction = openAddTransaction;
 window.assistantQuickAction = assistantQuickAction;
 window.sendAssistantMessage = sendAssistantMessage;
