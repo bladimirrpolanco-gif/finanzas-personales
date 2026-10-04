@@ -1135,6 +1135,40 @@
     min-height: 52px;
 }
 
+/* Botones deshabilitados (ej. "Activar notificaciones" sin soporte) */
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Notificaciones push */
+.push-benefits {
+    list-style: none;
+    margin: 0 0 var(--spacing-md);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.push-benefits i {
+    width: 22px;
+    color: var(--accent-primary);
+}
+
+.push-status {
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-md);
+    background: var(--bg-input);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
 /* Presupuesto por categoria */
 .cat-budgets-list,
 .cat-budgets-progress {

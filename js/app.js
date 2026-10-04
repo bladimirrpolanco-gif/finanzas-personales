@@ -2082,6 +2082,152 @@ async function deleteRecurringItem(id) {
     }
 }
 
+// ===== NOTIFICACIONES PUSH =====
+// Clave PUBLICA VAPID (la privada vive solo en los secretos de la funcion
+// send-push de Supabase; ver supabase/functions/send-push/index.ts).
+const VAPID_PUBLIC_KEY = '';
+
+let pushStateCache = { state: 'unknown' };
+
+function urlBase64ToUint8Array(base64) {
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const raw = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+function isIOSDevice() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isStandaloneApp() {
+    return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+// { state, message, subscription? } con state: unsupported | ios-install |
+// not-configured | denied | disabled | enabled
+async function getPushState() {
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    if (!supported) {
+        if (isIOSDevice() && !isStandaloneApp()) {
+            return {
+                state: 'ios-install',
+                message: 'En iPhone, primero instala Finia: en Safari toca Compartir → "Añadir a pantalla de inicio" y ábrela desde ese ícono. Las notificaciones solo funcionan desde la app instalada (iOS 16.4 o más nuevo).'
+            };
+        }
+        return { state: 'unsupported', message: 'Este navegador no permite notificaciones push.' };
+    }
+    if (!VAPID_PUBLIC_KEY) {
+        return { state: 'not-configured', message: 'Faltan configurar las claves del servidor de notificaciones.' };
+    }
+    if (Notification.permission === 'denied') {
+        return { state: 'denied', message: 'Bloqueaste las notificaciones de Finia. Actívalas en los ajustes del navegador o del teléfono y vuelve aquí.' };
+    }
+    const reg = await navigator.serviceWorker.getRegistration();
+    const subscription = reg ? await reg.pushManager.getSubscription() : null;
+    return subscription
+        ? { state: 'enabled', message: 'Activadas en este dispositivo ✅', subscription }
+        : { state: 'disabled', message: 'Desactivadas en este dispositivo.' };
+}
+
+async function renderPushStatus() {
+    const info = await getPushState();
+    pushStateCache = info;
+
+    document.getElementById('push-status').textContent = info.message;
+
+    const toggleBtn = document.getElementById('push-toggle-btn');
+    const testBtn = document.getElementById('push-test-btn');
+    const enabled = info.state === 'enabled';
+    toggleBtn.textContent = enabled ? 'Desactivar notificaciones' : 'Activar notificaciones';
+    toggleBtn.className = `btn ${enabled ? 'btn-secondary' : 'btn-primary'} btn-block`;
+    toggleBtn.disabled = !(enabled || info.state === 'disabled');
+    testBtn.style.display = enabled ? 'block' : 'none';
+
+    // Mantener al dia la fila de este dispositivo en la base de datos
+    if (enabled) FinanzData.savePushSubscription(info.subscription.toJSON()).catch(() => {});
+    return info;
+}
+
+async function openPushSettings() {
+    openModal('modal-push');
+    await renderPushStatus();
+}
+
+async function togglePush() {
+    // El permiso se pide AQUI, de forma sincrona dentro del clic (Safari exige
+    // que sea parte del gesto del usuario), antes de cualquier otra espera.
+    const wasEnabled = pushStateCache.state === 'enabled';
+    const permissionPromise = !wasEnabled && Notification.permission === 'default'
+        ? Notification.requestPermission()
+        : Promise.resolve(Notification.permission);
+
+    const btn = document.getElementById('push-toggle-btn');
+    btn.disabled = true;
+    try {
+        if (wasEnabled) {
+            const endpoint = pushStateCache.subscription.endpoint;
+            await FinanzData.removePushSubscription(endpoint);
+            await pushStateCache.subscription.unsubscribe();
+            showToast('Notificaciones desactivadas');
+        } else {
+            await enablePush(await permissionPromise);
+        }
+    } catch (err) {
+        console.error('togglePush error:', err);
+        showToast('Error: ' + err.message, 'error');
+    } finally {
+        await renderPushStatus();
+    }
+}
+
+async function enablePush(permission) {
+    if (permission !== 'granted') {
+        showToast('No se activaron: no diste permiso para notificar', 'error');
+        return;
+    }
+
+    const reg = await navigator.serviceWorker.register('sw-push.js');
+    await navigator.serviceWorker.ready;
+
+    const subscribe = () => reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+        try {
+            sub = await subscribe();
+        } catch (err) {
+            // Una suscripcion vieja hecha con otra clave bloquea la nueva: se reemplaza
+            if (err.name !== 'InvalidStateError') throw err;
+            const old = await reg.pushManager.getSubscription();
+            if (old) await old.unsubscribe();
+            sub = await subscribe();
+        }
+    }
+
+    await FinanzData.savePushSubscription(sub.toJSON());
+    showToast('Notificaciones activadas');
+}
+
+async function sendTestPush() {
+    const btn = document.getElementById('push-test-btn');
+    btn.disabled = true;
+    try {
+        const result = await FinanzData.sendTestPush();
+        if (result.sent > 0) showToast('Enviada: te debe llegar en unos segundos');
+        else showToast('No se pudo entregar la prueba a este dispositivo', 'error');
+        await renderPushStatus(); // por si el dispositivo estaba caido y se borro
+    } catch (err) {
+        console.error('sendTestPush error:', err);
+        showToast('Error: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 // ===== SIDEBAR CONTROL =====
 function toggleSidebar() {
     const overlay = document.getElementById('sidebar-overlay');
@@ -2241,6 +2387,9 @@ window.toggleTxFilters = toggleTxFilters;
 window.onTxRangeChange = onTxRangeChange;
 window.clearTxFilters = clearTxFilters;
 window.exportTransactionsCSV = exportTransactionsCSV;
+window.openPushSettings = openPushSettings;
+window.togglePush = togglePush;
+window.sendTestPush = sendTestPush;
 window.openCategoryBudgets = openCategoryBudgets;
 window.saveCategoryBudgets = saveCategoryBudgets;
 window.openRecurring = openRecurring;

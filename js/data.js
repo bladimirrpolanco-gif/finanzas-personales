@@ -511,6 +511,61 @@ class FinanzDataService {
         }
     }
 
+    // ===== NOTIFICACIONES PUSH =====
+    // Tabla push_subscriptions + funcion send-push (ver supabase/push_notifications.sql
+    // y supabase/functions/send-push/index.ts). `sub` es PushSubscription.toJSON().
+    async savePushSubscription(sub) {
+        if (!this.user) return;
+        const { error } = await this.client
+            .from('push_subscriptions')
+            .upsert({
+                user_id: this.user.id,
+                endpoint: sub.endpoint,
+                p256dh: sub.keys.p256dh,
+                auth: sub.keys.auth,
+                user_agent: (navigator.userAgent || '').slice(0, 200)
+            }, { onConflict: 'endpoint' });
+        if (error) throw new Error(error.message);
+    }
+
+    async removePushSubscription(endpoint) {
+        if (!this.user || !endpoint) return;
+        const { error } = await this.client
+            .from('push_subscriptions')
+            .delete()
+            .eq('endpoint', endpoint);
+        if (error) throw new Error(error.message);
+    }
+
+    // Pide a la funcion del servidor un aviso de prueba para los dispositivos de este usuario.
+    async sendTestPush() {
+        const { data, error } = await this.client.functions.invoke('send-push', { body: { mode: 'test' } });
+        if (error) {
+            let message = error.message;
+            try {
+                const detail = await error.context.json();
+                if (detail && detail.error) message = detail.error;
+            } catch (e) { /* sin detalle */ }
+            throw new Error(message);
+        }
+        return data;
+    }
+
+    // Al cerrar sesion se quita la suscripcion de ESTE dispositivo: si no, los
+    // avisos del usuario anterior seguirian llegando aqui aunque entre otra persona.
+    async _dropPushSubscription() {
+        try {
+            if (!('serviceWorker' in navigator)) return;
+            const reg = await navigator.serviceWorker.getRegistration();
+            const sub = reg && reg.pushManager ? await reg.pushManager.getSubscription() : null;
+            if (!sub) return;
+            await this.removePushSubscription(sub.endpoint);
+            await sub.unsubscribe();
+        } catch (err) {
+            console.warn('No se pudo quitar la suscripcion push al cerrar sesion:', err);
+        }
+    }
+
     // ===== PRESUPUESTO POR CATEGORIA =====
     // Tabla category_budgets (ver supabase/category_budgets.sql). El limite es
     // mensual y se compara siempre contra el MES EN CURSO, igual que el
@@ -1132,6 +1187,10 @@ class FinanzDataService {
     }
 
     async logout() {
+        // Antes de perder la sesion: quitar los avisos push de este dispositivo
+        // (con tope de 3 s para no trabar el cierre de sesion si no hay red).
+        await Promise.race([this._dropPushSubscription(), new Promise(resolve => setTimeout(resolve, 3000))]);
+
         // Limpiar almacenamiento local primero
         localStorage.clear();
         sessionStorage.clear();

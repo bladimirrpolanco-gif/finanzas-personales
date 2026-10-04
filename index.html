@@ -10,10 +10,16 @@
     <script>
         (function () {
             if (!('serviceWorker' in navigator)) return;
-            var hadController = !!navigator.serviceWorker.controller;
+            // El unico SW permitido es sw-push.js (notificaciones push): no
+            // tiene handler de fetch ni caches, asi que no puede servir nada viejo.
+            var isPushSW = function (sw) { return !!sw && /\/sw-push\.js(\?|$)/.test(sw.scriptURL); };
+            var hadController = !!navigator.serviceWorker.controller && !isPushSW(navigator.serviceWorker.controller);
             navigator.serviceWorker.getRegistrations()
                 .then(function (regs) {
-                    return Promise.all(regs.map(function (r) { return r.unregister(); }));
+                    return Promise.all(regs.map(function (r) {
+                        var sw = r.active || r.waiting || r.installing;
+                        return isPushSW(sw) ? null : r.unregister();
+                    }));
                 })
                 .then(function () {
                     return ('caches' in window)
@@ -359,6 +365,34 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: NOTIFICACIONES PUSH ===== -->
+    <div id="modal-push" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Notificaciones push</h3>
+                <button class="modal-close" onclick="closeModal('modal-push')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="recurring-intro">Avisos en tu celular aunque la app esté cerrada:</p>
+                <ul class="push-benefits">
+                    <li><i class="fas fa-chart-line"></i> Los lunes, el resumen de tus últimos 7 días</li>
+                    <li><i class="fas fa-triangle-exclamation"></i> Cuando llegues al 80% y al 100% de tu presupuesto del mes</li>
+                    <li><i class="fas fa-layer-group"></i> Lo mismo para cada presupuesto por categoría</li>
+                </ul>
+                <p id="push-status" class="push-status"></p>
+                <button type="button" id="push-toggle-btn" class="btn btn-primary btn-block" onclick="togglePush()">
+                    Activar notificaciones
+                </button>
+                <button type="button" id="push-test-btn" class="btn btn-secondary btn-block mt-md" onclick="sendTestPush()"
+                    style="display: none;">
+                    <i class="fas fa-paper-plane"></i> Enviar notificación de prueba
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1253,6 +1287,19 @@
                         <div class="profile-menu-text">
                             <h4>Presupuesto</h4>
                             <p>Ajustar presupuesto mensual</p>
+                        </div>
+                        <div class="profile-menu-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="openPushSettings()">
+                        <div class="profile-menu-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="profile-menu-text">
+                            <h4>Notificaciones push</h4>
+                            <p>Avisos en tu celular con la app cerrada</p>
                         </div>
                         <div class="profile-menu-arrow">
                             <i class="fas fa-chevron-right"></i>
