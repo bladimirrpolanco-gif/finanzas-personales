@@ -208,6 +208,17 @@ function getCategoryTip(categoryId) {
     return CATEGORY_TIPS[categoryId] || 'Revisa estos gastos y evalúa cuáles puedes reducir esta semana.';
 }
 
+// Movimientos "internos": los genera el sistema al mover dinero que sigue
+// siendo tuyo (transferir entre cuentas, depositar a un bolsillo o recibir
+// el reintegro de un bolsillo borrado). Se guardan como gasto/ingreso para
+// que los saldos de las cuentas cuadren, pero NO son gasto ni ingreso real:
+// contarlos infla los totales y distorsiona presupuesto y comparaciones.
+const INTERNAL_CATEGORIES = ['Transferencia', 'Ahorro'];
+
+function isInternalMovement(tx) {
+    return INTERNAL_CATEGORIES.includes(tx.category);
+}
+
 function getCategoryInfo(type, categoryId) {
     const categories = CATEGORIES[type] || CATEGORIES.expense;
     const found = categories.find(c => c.id === categoryId);
@@ -333,6 +344,7 @@ window.FinanzUtils = {
     isValidDate,
     getCategoryInfo,
     getCategoryTip,
+    isInternalMovement,
     getAccountInfo,
     getPocketIcon,
     calculatePercentage,

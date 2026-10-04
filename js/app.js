@@ -610,7 +610,14 @@ async function renderTransactions() {
     if (!list) return;
 
     const [txs, stats] = await Promise.all([
-        FinanzData.getTransactions({ period: currentFilter, type: currentTransactionType }),
+        // Los movimientos internos (transferencias, depositos a bolsillos)
+        // se listan solo en "Todos": no son gasto ni ingreso real, asi que
+        // no deben aparecer bajo "Gastos"/"Ingreso" ni en sus totales.
+        FinanzData.getTransactions({
+            period: currentFilter,
+            type: currentTransactionType,
+            includeInternal: currentTransactionType === 'all'
+        }),
         FinanzData.getDashboardStats(currentFilter)
     ]);
 
@@ -625,11 +632,13 @@ async function renderTransactions() {
         return;
     }
 
-    list.innerHTML = txs.map(t => `
+    list.innerHTML = txs.map(t => {
+        const internal = FinanzUtils.isInternalMovement(t);
+        return `
         <div class="transaction-item animate-fade-in" style="display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md);">
             <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; min-width: 0;">
-                <div class="transaction-icon ${t.type === 'income' ? 'bg-success' : 'bg-danger'}">
-                    <i class="fas fa-${t.type === 'income' ? 'arrow-up' : 'arrow-down'}"></i>
+                <div class="transaction-icon ${internal ? '' : (t.type === 'income' ? 'bg-success' : 'bg-danger')}">
+                    <i class="fas fa-${internal ? 'right-left' : (t.type === 'income' ? 'arrow-up' : 'arrow-down')}"></i>
                 </div>
                 <div class="transaction-info" style="flex: 1; min-width: 0;">
                     <div class="transaction-title">${t.title}</div>
@@ -637,7 +646,7 @@ async function renderTransactions() {
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0;">
-                <div class="transaction-amount ${t.type === 'income' ? 'text-success' : 'text-danger'}" style="font-weight: 600;">
+                <div class="transaction-amount ${internal ? 'text-muted' : (t.type === 'income' ? 'text-success' : 'text-danger')}" style="font-weight: 600;">
                     ${t.type === 'income' ? '+' : '-'}${FinanzUtils.formatCurrency(t.amount)}
                 </div>
                 <button onclick="event.stopPropagation(); handleDeleteTransaction('${t.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 5px; font-size: 0.95rem; transition: color 0.2s;" onmouseover="this.style.color='#ff4444'" onmouseout="this.style.color='var(--text-muted)'">
@@ -645,7 +654,8 @@ async function renderTransactions() {
                 </button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Texto del encabezado de Analisis con el rango REAL que consulta el filtro

@@ -315,13 +315,13 @@ class FinanzDataService {
             .lte('date', FinanzUtils.toLocalISODate(range.end));
 
         const { data } = await query;
-        return data || [];
+        return this._withoutInternal(data || [], filters.includeInternal);
     }
 
     // Trae las transacciones dentro de un rango exacto de fechas (para el
     // calendario, donde se necesita un mes calendario especifico y no uno
     // de los periodos relativos de getDateRange).
-    async getTransactionsInRange(startDateISO, endDateISO) {
+    async getTransactionsInRange(startDateISO, endDateISO, { includeInternal = false } = {}) {
         if (!this.user) return [];
         const { data } = await this.client
             .from('transactions')
@@ -329,7 +329,16 @@ class FinanzDataService {
             .gte('date', startDateISO)
             .lte('date', endDateISO)
             .order('date', { ascending: true });
-        return data || [];
+        return this._withoutInternal(data || [], includeInternal);
+    }
+
+    // Por defecto se descartan los movimientos internos (transferencias y
+    // depositos a bolsillos, ver FinanzUtils.isInternalMovement): no son
+    // gasto ni ingreso real, asi que ningun total/grafica/comparacion debe
+    // contarlos. Solo quien los quiera ver (la lista de Transacciones) pasa
+    // includeInternal: true.
+    _withoutInternal(txs, includeInternal) {
+        return includeInternal ? txs : txs.filter(t => !FinanzUtils.isInternalMovement(t));
     }
 
     async addTransaction(tx) {
@@ -538,11 +547,11 @@ class FinanzDataService {
     // de cada dia del ledger. No inventa numeros: el unico dato "fijo" es
     // el saldo actual real, y cada dia anterior se deriva restando el neto
     // real de ese dia.
-    // Nota: un deposito a un bolsillo financiado desde una cuenta se
-    // registra como gasto en el ledger (ver depositToPocket), aunque el
-    // patrimonio total no cambia realmente al mover dinero de una cuenta a
-    // un bolsillo propio. Es una limitacion conocida de los datos, no del
-    // calculo: puede verse una baja momentanea al ahorrar hacia una meta.
+    // Nota: un deposito a un bolsillo (o una transferencia entre cuentas) se
+    // guarda como gasto/ingreso en el ledger, pero no cambia el patrimonio
+    // total. Esos movimientos internos se excluyen en getTransactionsInRange
+    // (ver FinanzUtils.isInternalMovement), asi que no aparece una baja falsa
+    // al ahorrar hacia una meta.
     async getPatrimonyHistory(period = 'thisMonth') {
         if (!this.user) return { labels: [], data: [] };
 
