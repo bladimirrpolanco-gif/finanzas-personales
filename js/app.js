@@ -2085,7 +2085,7 @@ async function deleteRecurringItem(id) {
 // ===== NOTIFICACIONES PUSH =====
 // Clave PUBLICA VAPID (la privada vive solo en los secretos de la funcion
 // send-push de Supabase; ver supabase/functions/send-push/index.ts).
-const VAPID_PUBLIC_KEY = '';
+const VAPID_PUBLIC_KEY = 'BNafkQzvl5iJO_AN98djhmYJMwpxuWAhccoOguiqsJGTxRv227VPlsTaq1NLLbbzLLJcvJZEhkwi5QA1nmjlBe4';
 
 let pushStateCache = { state: 'unknown' };
 
