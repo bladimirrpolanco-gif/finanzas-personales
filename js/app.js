@@ -648,7 +648,28 @@ async function renderTransactions() {
     `).join('');
 }
 
+// Texto del encabezado de Analisis con el rango REAL que consulta el filtro
+// activo (el mismo getDateRange que usa getTransactions), p. ej. "27 sep - Hoy",
+// "Ayer, 3 oct" o "Hoy, 4 oct".
+function renderAnalysisDateRange() {
+    const el = document.getElementById('analysis-date-range');
+    if (!el) return;
+
+    const range = FinanzUtils.getDateRange(currentFilter);
+    const startISO = FinanzUtils.toLocalISODate(range.start);
+    const endISO = FinanzUtils.toLocalISODate(range.end);
+    const todayISO = FinanzUtils.toLocalISODate(new Date());
+    const startLabel = FinanzUtils.formatDate(startISO, 'short');
+
+    if (startISO === endISO) {
+        el.textContent = `${endISO === todayISO ? 'Hoy' : 'Ayer'}, ${startLabel}`;
+    } else {
+        el.textContent = `${startLabel} - ${endISO === todayISO ? 'Hoy' : FinanzUtils.formatDate(endISO, 'short')}`;
+    }
+}
+
 async function renderAnalysis() {
+    renderAnalysisDateRange();
     const stats = await FinanzData.getDashboardStats(currentFilter);
 
     const elements = {
