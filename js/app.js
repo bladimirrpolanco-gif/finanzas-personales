@@ -40,7 +40,14 @@ async function initApp() {
     if (isLoggedIn) {
         checkBudgetAlerts();
         renderNotifications();
+        runRecurring();
     }
+
+    // Si la app se deja abierta (PWA) y se vuelve a ella otro dia, registrar
+    // los recurrentes que vencieron mientras tanto.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && FinanzData.user) runRecurring();
+    });
 }
 
 function setupAuthStateListener() {
@@ -63,6 +70,7 @@ function setupAuthStateListener() {
             await navigateTo('dashboard');
             checkBudgetAlerts();
             renderNotifications();
+            runRecurring();
             return;
         }
 
@@ -1681,6 +1689,253 @@ async function setTransactionType(type) {
     await renderTransactions();
 }
 
+// ===== GASTOS RECURRENTES =====
+const WEEKDAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+let lastRecurringRun = 0;
+let recurringRunning = false;
+
+// Registra los movimientos recurrentes ya vencidos. `force` ignora el limite
+// de "una vez cada 5 minutos" (al guardar un recurrente nuevo, por ejemplo).
+async function runRecurring(force = false) {
+    if (recurringRunning) return;
+    if (!force && Date.now() - lastRecurringRun < 5 * 60 * 1000) return;
+    recurringRunning = true;
+    try {
+        const { created } = await FinanzData.processRecurring();
+        lastRecurringRun = Date.now();
+        if (created > 0) {
+            showToast(`Se registraron ${created} movimiento${created === 1 ? '' : 's'} recurrente${created === 1 ? '' : 's'}`);
+            await refreshAfterTxChange();
+        }
+    } catch (err) {
+        console.error('runRecurring error:', err);
+    } finally {
+        recurringRunning = false;
+    }
+}
+
+function recurringFrequencyText(rec) {
+    return rec.frequency === 'weekly'
+        ? `Cada ${WEEKDAY_NAMES[rec.day_of_week]}`
+        : `Cada mes, el día ${rec.day_of_month}`;
+}
+
+async function openRecurring() {
+    openModal('modal-recurring');
+    await renderRecurringList();
+}
+
+async function renderRecurringList() {
+    const list = document.getElementById('recurring-list');
+    if (!list) return;
+
+    let recs, accounts;
+    try {
+        [recs, accounts] = await Promise.all([FinanzData.getRecurring(), FinanzData.getAccounts()]);
+    } catch (err) {
+        console.error('renderRecurringList error:', err);
+        const missing = /recurring_transactions|schema cache|does not exist/i.test(err.message);
+        list.innerHTML = `<div class="empty-state"><p>${missing
+            ? 'La tabla de recurrentes todavía no existe en Supabase. Hay que correr supabase/recurring_transactions.sql.'
+            : 'No se pudieron cargar los recurrentes: ' + escapeHTML(err.message)}</p></div>`;
+        return;
+    }
+
+    if (recs.length === 0) {
+        list.innerHTML = '<div class="empty-state"><p>Aún no tienes movimientos recurrentes.</p></div>';
+        return;
+    }
+
+    const accountName = Object.fromEntries(accounts.map(a => [a.id, a.name]));
+    const todayISO = FinanzUtils.toLocalISODate(new Date());
+
+    list.innerHTML = recs.map(r => {
+        const income = r.type === 'income';
+        const next = r.active ? FinanzUtils.getNextRecurringDate(r, todayISO) : null;
+        const status = !r.active
+            ? 'Pausado'
+            : (next ? `Próximo: ${FinanzUtils.formatDate(next, 'medium')}` : '');
+        return `
+        <div class="day-tx-item recurring-item${r.active ? '' : ' paused'}">
+            <div class="transaction-icon ${income ? 'bg-success' : 'bg-danger'}">
+                <i class="fas fa-${income ? 'arrow-up' : 'arrow-down'}"></i>
+            </div>
+            <div class="day-tx-info">
+                <div class="transaction-title">${escapeHTML(r.title)}</div>
+                <div class="transaction-category">${escapeHTML(recurringFrequencyText(r))} · ${escapeHTML(accountName[r.account_id] || '')}</div>
+                <div class="transaction-category">${escapeHTML(status)}</div>
+            </div>
+            <div class="transaction-amount ${income ? 'text-success' : 'text-danger'}">${income ? '+' : '-'}${FinanzUtils.formatCurrency(r.amount)}</div>
+            <div class="day-tx-actions">
+                <button type="button" class="tx-action-btn" onclick="toggleRecurring('${r.id}', ${!r.active})" aria-label="${r.active ? 'Pausar' : 'Reanudar'}">
+                    <i class="fas fa-${r.active ? 'pause' : 'play'}"></i>
+                </button>
+                <button type="button" class="tx-action-btn" onclick="openRecurringForm('${r.id}')" aria-label="Editar">
+                    <i class="fas fa-pen"></i>
+                </button>
+                <button type="button" class="tx-action-btn" onclick="deleteRecurringItem('${r.id}')" aria-label="Eliminar">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function setRecType(type, selectedCategory = null) {
+    document.getElementById('rec-type').value = type;
+    document.querySelectorAll('.rec-type-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.recType === type);
+    });
+
+    const select = document.getElementById('rec-category');
+    select.innerHTML = FinanzUtils.CATEGORIES[type]
+        .map(c => `<option value="${c.id}">${c.id === 'other' ? 'Otros (escribir nombre)' : c.name}</option>`)
+        .join('');
+    select.value = selectedCategory || FinanzUtils.CATEGORIES[type][0].id;
+    onRecCategoryChange();
+}
+
+function onRecCategoryChange() {
+    const isOther = document.getElementById('rec-category').value === 'other';
+    document.getElementById('rec-category-other-wrap').style.display = isOther ? 'block' : 'none';
+}
+
+function onRecFrequencyChange() {
+    const weekly = document.getElementById('rec-frequency').value === 'weekly';
+    document.getElementById('rec-dom-wrap').style.display = weekly ? 'none' : 'block';
+    document.getElementById('rec-dow-wrap').style.display = weekly ? 'block' : 'none';
+}
+
+// Sin id: formulario nuevo. Con id: edita ese recurrente.
+async function openRecurringForm(id = null) {
+    const accounts = await FinanzData.getAccounts();
+    if (accounts.length === 0) {
+        showToast('Crea una cuenta primero', 'error');
+        return;
+    }
+
+    let rec = null;
+    if (id) {
+        try {
+            rec = (await FinanzData.getRecurring()).find(r => String(r.id) === String(id));
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+            return;
+        }
+        if (!rec) return;
+    }
+
+    document.getElementById('form-recurring').reset();
+    document.getElementById('rec-id').value = rec ? rec.id : '';
+    document.getElementById('rec-modal-title').textContent = rec ? 'Editar recurrente' : 'Nuevo recurrente';
+    document.getElementById('rec-submit-label').textContent = rec ? 'Guardar cambios' : 'Guardar';
+    document.getElementById('rec-account').innerHTML = accounts
+        .map(a => `<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
+
+    const today = new Date();
+    const todayISO = FinanzUtils.toLocalISODate(today);
+    const startInput = document.getElementById('rec-start-date');
+    // Hasta 1 año atras (mas que eso generaria cientos de movimientos de golpe)
+    startInput.min = FinanzUtils.toLocalISODate(new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()));
+
+    if (rec) {
+        const standard = FinanzUtils.CATEGORIES[rec.type].some(c => c.id === rec.category);
+        setRecType(rec.type, standard ? rec.category : 'other');
+        if (!standard) document.getElementById('rec-category-other').value = rec.category;
+        document.getElementById('rec-amount').value = rec.amount;
+        document.getElementById('rec-title').value = rec.title;
+        document.getElementById('rec-account').value = rec.account_id;
+        document.getElementById('rec-frequency').value = rec.frequency;
+        document.getElementById('rec-day-of-month').value = rec.day_of_month || 1;
+        document.getElementById('rec-day-of-week').value = rec.day_of_week ?? 1;
+        startInput.value = String(rec.start_date).slice(0, 10);
+        document.getElementById('rec-note').value = rec.note || '';
+    } else {
+        setRecType('expense');
+        document.getElementById('rec-day-of-month').value = today.getDate();
+        document.getElementById('rec-day-of-week').value = today.getDay();
+        startInput.value = todayISO;
+    }
+    onRecFrequencyChange();
+
+    openModal('modal-recurring-form');
+}
+
+async function saveRecurring(e) {
+    if (e) e.preventDefault();
+
+    const type = document.getElementById('rec-type').value;
+    let category = document.getElementById('rec-category').value;
+    if (category === 'other') {
+        const custom = (document.getElementById('rec-category-other').value || '').trim();
+        if (custom) category = custom;
+    }
+
+    const frequency = document.getElementById('rec-frequency').value;
+    const amount = parseFloat(document.getElementById('rec-amount').value);
+    if (!(amount > 0)) {
+        showToast('El monto debe ser mayor que 0', 'error');
+        return;
+    }
+
+    const dayOfMonth = parseInt(document.getElementById('rec-day-of-month').value, 10);
+    if (frequency === 'monthly' && !(dayOfMonth >= 1 && dayOfMonth <= 31)) {
+        showToast('El día del mes debe estar entre 1 y 31', 'error');
+        return;
+    }
+
+    const rec = {
+        accountId: document.getElementById('rec-account').value,
+        type,
+        category,
+        title: document.getElementById('rec-title').value.trim(),
+        amount,
+        note: document.getElementById('rec-note').value.trim(),
+        frequency,
+        dayOfMonth,
+        dayOfWeek: parseInt(document.getElementById('rec-day-of-week').value, 10),
+        startDate: document.getElementById('rec-start-date').value
+    };
+    if (!rec.accountId || !rec.title || !rec.startDate) {
+        showToast('Completa cuenta, título y fecha', 'error');
+        return;
+    }
+
+    try {
+        const id = document.getElementById('rec-id').value;
+        if (id) await FinanzData.updateRecurring(id, rec);
+        else await FinanzData.addRecurring(rec);
+        closeModal('modal-recurring-form');
+        showToast(id ? 'Recurrente actualizado' : 'Recurrente creado');
+        // Si ya hay pagos vencidos (fecha de inicio pasada o cae hoy), se registran ya
+        await runRecurring(true);
+        await renderRecurringList();
+    } catch (err) {
+        console.error('saveRecurring error:', err);
+        showToast('Error al guardar: ' + err.message, 'error');
+    }
+}
+
+async function toggleRecurring(id, active) {
+    try {
+        await FinanzData.setRecurringActive(id, active);
+        await renderRecurringList();
+    } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+    }
+}
+
+async function deleteRecurringItem(id) {
+    if (!confirm('¿Eliminar este recurrente? Los movimientos que ya se registraron no se borran.')) return;
+    try {
+        await FinanzData.deleteRecurring(id);
+        showToast('Recurrente eliminado');
+        await renderRecurringList();
+    } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+    }
+}
+
 // ===== SIDEBAR CONTROL =====
 function toggleSidebar() {
     const overlay = document.getElementById('sidebar-overlay');
@@ -1840,6 +2095,14 @@ window.toggleTxFilters = toggleTxFilters;
 window.onTxRangeChange = onTxRangeChange;
 window.clearTxFilters = clearTxFilters;
 window.exportTransactionsCSV = exportTransactionsCSV;
+window.openRecurring = openRecurring;
+window.openRecurringForm = openRecurringForm;
+window.saveRecurring = saveRecurring;
+window.setRecType = setRecType;
+window.onRecCategoryChange = onRecCategoryChange;
+window.onRecFrequencyChange = onRecFrequencyChange;
+window.toggleRecurring = toggleRecurring;
+window.deleteRecurringItem = deleteRecurringItem;
 window.addTransactionForSelectedDay = addTransactionForSelectedDay;
 window.openAddTransaction = openAddTransaction;
 window.assistantQuickAction = assistantQuickAction;

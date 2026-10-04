@@ -1135,6 +1135,61 @@
     min-height: 52px;
 }
 
+/* Gastos recurrentes */
+.recurring-intro {
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.recurring-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.recurring-item.paused {
+    opacity: 0.55;
+}
+
+/* Con tres botones + monto, el texto quedaba cortado en celular: los botones
+   van en su propia fila debajo y el texto puede ocupar varias lineas. */
+.recurring-item {
+    flex-wrap: wrap;
+}
+
+.recurring-item .day-tx-info {
+    flex: 1 1 140px;
+}
+
+.recurring-item .day-tx-info .transaction-title,
+.recurring-item .day-tx-info .transaction-category {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.recurring-item .day-tx-actions {
+    flex-basis: 100%;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-color);
+}
+
+.recurring-item .tx-action-btn {
+    padding: 8px 12px;
+}
+
+.form-hint {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
 /* Busqueda y filtros de Transacciones */
 .tx-search-wrap {
     position: relative;

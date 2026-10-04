@@ -245,6 +245,123 @@
         </div>
     </div>
 
+    <!-- ===== MODAL: GASTOS RECURRENTES (lista) ===== -->
+    <div id="modal-recurring" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Gastos recurrentes</h3>
+                <button class="modal-close" onclick="closeModal('modal-recurring')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="recurring-intro">Pagos o ingresos que se repiten (internet, renta, sueldo...).
+                    Finia los registra solos cuando llega la fecha, aunque no abras la app ese día.</p>
+                <div id="recurring-list" class="recurring-list">
+                    <!-- Se renderiza dinámicamente -->
+                </div>
+                <button type="button" class="btn btn-primary btn-block mt-lg" onclick="openRecurringForm()">
+                    <i class="fas fa-plus"></i> Nuevo recurrente
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: GASTO RECURRENTE (formulario) =====
+         Después de la lista en el DOM para abrirse por encima de ella. -->
+    <div id="modal-recurring-form" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="rec-modal-title">Nuevo recurrente</h3>
+                <button class="modal-close" onclick="closeModal('modal-recurring-form')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-recurring" class="modal-body" onsubmit="saveRecurring(event)">
+                <input type="hidden" id="rec-id" value="">
+                <input type="hidden" id="rec-type" value="expense">
+
+                <div class="tabs tx-type-tabs">
+                    <button type="button" class="tab rec-type-tab active" data-rec-type="expense"
+                        onclick="setRecType('expense')">Gasto</button>
+                    <button type="button" class="tab rec-type-tab" data-rec-type="income"
+                        onclick="setRecType('income')">Ingreso</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Monto</label>
+                    <input type="number" id="rec-amount" class="form-input" placeholder="0.00" step="0.01" min="0.01"
+                        inputmode="decimal" onfocus="this.select()" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Título</label>
+                    <input type="text" id="rec-title" class="form-input" placeholder="Ej: Internet" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Categoría</label>
+                    <select id="rec-category" class="form-input form-select" onchange="onRecCategoryChange()"></select>
+                </div>
+
+                <div class="form-group" id="rec-category-other-wrap" style="display: none;">
+                    <label class="form-label">Nombre de la categoría</label>
+                    <input type="text" id="rec-category-other" class="form-input" placeholder="Ej: Suscripción, Mascota...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Cuenta</label>
+                    <select id="rec-account" class="form-input form-select"></select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Se repite</label>
+                    <select id="rec-frequency" class="form-input form-select" onchange="onRecFrequencyChange()">
+                        <option value="monthly">Cada mes</option>
+                        <option value="weekly">Cada semana</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="rec-dom-wrap">
+                    <label class="form-label">Día del mes</label>
+                    <input type="number" id="rec-day-of-month" class="form-input" min="1" max="31" step="1"
+                        inputmode="numeric" value="1">
+                    <small class="form-hint">Si el mes es más corto (por ejemplo 31 en febrero), se registra el último día.</small>
+                </div>
+
+                <div class="form-group" id="rec-dow-wrap" style="display: none;">
+                    <label class="form-label">Día de la semana</label>
+                    <select id="rec-day-of-week" class="form-input form-select">
+                        <option value="1">Lunes</option>
+                        <option value="2">Martes</option>
+                        <option value="3">Miércoles</option>
+                        <option value="4">Jueves</option>
+                        <option value="5">Viernes</option>
+                        <option value="6">Sábado</option>
+                        <option value="0">Domingo</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Desde</label>
+                    <input type="date" id="rec-start-date" class="form-input form-date" required>
+                    <small class="form-hint">Si eliges una fecha pasada, se registran de una vez los pagos que ya debieron hacerse.</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nota (opcional)</label>
+                    <input type="text" id="rec-note" class="form-input" placeholder="Agregar nota...">
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-check"></i> <span id="rec-submit-label">Guardar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ===== MODAL: CUENTAS ===== -->
     <div id="modal-accounts" class="modal-overlay modal-centered">
         <div class="modal">
@@ -1107,6 +1224,19 @@
                         </div>
                     </div>
 
+                    <div class="profile-menu-item" onclick="openRecurring()">
+                        <div class="profile-menu-icon">
+                            <i class="fas fa-rotate"></i>
+                        </div>
+                        <div class="profile-menu-text">
+                            <h4>Gastos recurrentes</h4>
+                            <p>Pagos que se repiten cada mes o semana</p>
+                        </div>
+                        <div class="profile-menu-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+
 
                     <div class="profile-menu-item" onclick="resetData()">
                         <div class="profile-menu-icon" style="color: var(--danger);">
@@ -1202,6 +1332,10 @@
                 <div class="sidebar-nav-item" onclick="openPockets(); closeSidebar()">
                     <i class="fas fa-piggy-bank"></i>
                     <span>Bolsillos</span>
+                </div>
+                <div class="sidebar-nav-item" onclick="openRecurring(); closeSidebar()">
+                    <i class="fas fa-rotate"></i>
+                    <span>Gastos recurrentes</span>
                 </div>
                 <div class="sidebar-nav-item" onclick="openBudgetModal(); closeSidebar()">
                     <i class="fas fa-cog"></i>

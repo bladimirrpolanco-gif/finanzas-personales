@@ -511,6 +511,160 @@ class FinanzDataService {
         }
     }
 
+    // ===== MOVIMIENTOS RECURRENTES =====
+    // Definiciones en la tabla recurring_transactions (ver
+    // supabase/recurring_transactions.sql). Cada vez que se abre la app,
+    // processRecurring() crea los movimientos que ya vencieron.
+    async getRecurring() {
+        if (!this.user) return [];
+        const { data, error } = await this.client
+            .from('recurring_transactions')
+            .select('*')
+            .order('created_at', { ascending: true });
+        if (error) throw new Error(error.message);
+        return data || [];
+    }
+
+    _recurringRow(r) {
+        return {
+            account_id: r.accountId,
+            type: r.type,
+            category: r.category,
+            title: r.title,
+            amount: r.amount,
+            note: r.note || null,
+            frequency: r.frequency,
+            day_of_week: r.frequency === 'weekly' ? r.dayOfWeek : null,
+            day_of_month: r.frequency === 'monthly' ? r.dayOfMonth : null,
+            start_date: r.startDate
+        };
+    }
+
+    async addRecurring(r) {
+        if (!this.user) return null;
+        const { data, error } = await this.client
+            .from('recurring_transactions')
+            .insert([{ user_id: this.user.id, ...this._recurringRow(r) }])
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data;
+    }
+
+    async updateRecurring(id, r) {
+        if (!this.user) return null;
+        const { data, error } = await this.client
+            .from('recurring_transactions')
+            .update(this._recurringRow(r))
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data;
+    }
+
+    // Pausar detiene el registro. Al REANUDAR no se registran los pagos que
+    // caian mientras estuvo pausado (si no, pausar 3 meses y reanudar
+    // crearia 3 pagos de golpe): se marcan como ya generados y sigue la
+    // proxima fecha normal.
+    async setRecurringActive(id, active) {
+        if (!this.user) return false;
+
+        const patch = { active };
+        if (active) {
+            const { data: rec, error: readError } = await this.client
+                .from('recurring_transactions')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (readError) throw new Error(readError.message);
+            const dues = FinanzUtils.getRecurringDueDates(rec, FinanzUtils.toLocalISODate(new Date()));
+            if (dues.length > 0) patch.last_generated = dues[dues.length - 1];
+        }
+
+        const { error } = await this.client
+            .from('recurring_transactions')
+            .update(patch)
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
+    }
+
+    async deleteRecurring(id) {
+        if (!this.user) return false;
+        const { error } = await this.client
+            .from('recurring_transactions')
+            .delete()
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
+    }
+
+    // Crea los movimientos recurrentes ya vencidos (incluidos los de dias en
+    // que no se abrio la app). Cada fecha se "reclama" ANTES de crear el
+    // movimiento, con una actualizacion condicional de last_generated: si dos
+    // dispositivos abren la app a la vez, solo uno logra reclamarla y no se
+    // duplica. Si crear el movimiento falla, se devuelve el reclamo.
+    async processRecurring() {
+        if (!this.user) return { created: 0 };
+
+        let recs;
+        try {
+            recs = await this.getRecurring();
+        } catch (err) {
+            // p. ej. la tabla aun no existe: no debe romper la app
+            console.warn('processRecurring: no se pudieron leer los recurrentes:', err.message);
+            return { created: 0, error: err.message };
+        }
+
+        const todayISO = FinanzUtils.toLocalISODate(new Date());
+        let created = 0;
+
+        for (const rec of recs) {
+            if (!rec.active) continue;
+
+            let previous = rec.last_generated || null;
+            for (const date of FinanzUtils.getRecurringDueDates(rec, todayISO)) {
+                const { data: claimed, error: claimError } = await this.client
+                    .from('recurring_transactions')
+                    .update({ last_generated: date })
+                    .eq('id', rec.id)
+                    .or(`last_generated.is.null,last_generated.lt.${date}`)
+                    .select('id');
+
+                if (claimError) {
+                    console.error('processRecurring claim error:', claimError);
+                    break;
+                }
+                if (!claimed || claimed.length === 0) break; // otro dispositivo ya lo registro
+
+                try {
+                    await this.addTransaction({
+                        accountId: rec.account_id,
+                        type: rec.type,
+                        category: rec.category,
+                        title: rec.title,
+                        amount: parseFloat(rec.amount),
+                        date,
+                        note: rec.note ? `${rec.note} (recurrente)` : 'Recurrente'
+                    });
+                    created++;
+                    previous = date;
+                } catch (err) {
+                    console.error('processRecurring: no se pudo crear el movimiento:', err);
+                    await this.client
+                        .from('recurring_transactions')
+                        .update({ last_generated: previous })
+                        .eq('id', rec.id)
+                        .eq('last_generated', date);
+                    break;
+                }
+            }
+        }
+
+        return { created };
+    }
+
     async getChartData(type, period) {
         if (!this.user) return { labels: [], data: [] };
         const txs = await this.getTransactions({ type, period });

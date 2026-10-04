@@ -208,6 +208,68 @@ function getCategoryTip(categoryId) {
     return CATEGORY_TIPS[categoryId] || 'Revisa estos gastos y evalúa cuáles puedes reducir esta semana.';
 }
 
+// ===== MOVIMIENTOS RECURRENTES =====
+// Fechas ("YYYY-MM-DD") en las que cae un recurrente entre `from` y `to`
+// (ambas inclusive, objetos Date locales). Mensual: el dia `day_of_month`
+// (si el mes es mas corto, el ultimo dia: el 31 cae el 30 o el 28/29).
+// Semanal: el dia de la semana `day_of_week` (0 = domingo ... 6 = sabado).
+// Todo con fechas LOCALES (sin toISOString) para no correrse un dia en UTC-4.
+function recurringDatesBetween(rec, from, to) {
+    const dates = [];
+    if (from > to) return dates;
+
+    if (rec.frequency === 'weekly') {
+        const dow = rec.day_of_week;
+        if (!Number.isInteger(dow) || dow < 0 || dow > 6) return dates;
+        const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+        while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
+        for (; d <= to && dates.length < 400; d.setDate(d.getDate() + 7)) {
+            dates.push(toLocalISODate(d));
+        }
+    } else if (rec.frequency === 'monthly') {
+        const dom = rec.day_of_month;
+        if (!Number.isInteger(dom) || dom < 1 || dom > 31) return dates;
+        let y = from.getFullYear();
+        let m = from.getMonth();
+        while (dates.length < 400) {
+            const lastDay = new Date(y, m + 1, 0).getDate();
+            const d = new Date(y, m, Math.min(dom, lastDay));
+            if (d > to) break;
+            if (d >= from) dates.push(toLocalISODate(d));
+            m++;
+            if (m > 11) { m = 0; y++; }
+        }
+    }
+    return dates;
+}
+
+// Fechas vencidas que aun no se han registrado: desde el dia siguiente a
+// `last_generated` (o desde `start_date` si nunca se ha generado) hasta hoy.
+function getRecurringDueDates(rec, todayISO) {
+    const start = parseLocalDate(rec.start_date);
+    let from = start;
+    if (rec.last_generated) {
+        const next = parseLocalDate(rec.last_generated);
+        next.setDate(next.getDate() + 1);
+        if (next > from) from = next;
+    }
+    return recurringDatesBetween(rec, from, parseLocalDate(todayISO));
+}
+
+// Proxima fecha en que se registrara (hoy cuenta si aun no se ha generado).
+function getNextRecurringDate(rec, todayISO) {
+    const today = parseLocalDate(todayISO);
+    let from = parseLocalDate(rec.start_date);
+    if (today > from) from = today;
+    if (rec.last_generated) {
+        const next = parseLocalDate(rec.last_generated);
+        next.setDate(next.getDate() + 1);
+        if (next > from) from = next;
+    }
+    const limit = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 62);
+    return recurringDatesBetween(rec, from, limit)[0] || null;
+}
+
 // Movimientos "internos": los genera el sistema al mover dinero que sigue
 // siendo tuyo (transferir entre cuentas, depositar a un bolsillo o recibir
 // el reintegro de un bolsillo borrado). Se guardan como gasto/ingreso para
@@ -345,6 +407,9 @@ window.FinanzUtils = {
     getCategoryInfo,
     getCategoryTip,
     isInternalMovement,
+    getRecurringDueDates,
+    getNextRecurringDate,
+    parseLocalDate,
     getAccountInfo,
     getPocketIcon,
     calculatePercentage,
