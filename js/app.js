@@ -605,34 +605,145 @@ async function renderDashboardPockets() {
     }
 }
 
+// ===== TRANSACCIONES: busqueda, filtros y exportacion =====
+let lastShownTransactions = []; // lo que se ve en la lista ahora mismo (para exportar)
+let txAccountNameById = {};
+
+function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+}
+
+// Minusculas y sin acentos, para que "educacion" encuentre "Educación".
+function normalizeSearch(value) {
+    return String(value ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+// Nombre legible de la categoria ("food" -> "Comida"); un nombre propio se respeta.
+function categoryLabel(t) {
+    return FinanzUtils.getCategoryInfo(t.type, t.category).name;
+}
+
+const rerenderTransactionsDebounced = FinanzUtils.debounce(() => renderTransactions(), 200);
+
+function onTxSearchInput() {
+    rerenderTransactionsDebounced();
+}
+
+function focusTxSearch() {
+    const el = document.getElementById('tx-search');
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.focus();
+}
+
+function toggleTxFilters() {
+    const panel = document.getElementById('tx-filters-panel');
+    if (panel) panel.hidden = !panel.hidden;
+}
+
+// El rango de fechas manda sobre las pestanas de periodo (Hoy/Ayer/...) solo
+// cuando "Desde" y "Hasta" estan los dos puestos.
+function onTxRangeChange() {
+    const from = document.getElementById('tx-range-from').value;
+    const to = document.getElementById('tx-range-to').value;
+    if (!from || !to) return;
+    if (from > to) {
+        showToast('"Desde" no puede ser posterior a "Hasta"', 'error');
+        return;
+    }
+    document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
+    renderTransactions();
+}
+
+function clearTxFilters() {
+    ['tx-search', 'tx-filter-category', 'tx-range-from', 'tx-range-to'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.filter === currentFilter);
+    });
+    renderTransactions();
+}
+
 async function renderTransactions() {
     const list = document.getElementById('transactions-list');
     if (!list) return;
 
-    const [txs, stats] = await Promise.all([
-        // Los movimientos internos (transferencias, depositos a bolsillos)
-        // se listan solo en "Todos": no son gasto ni ingreso real, asi que
-        // no deben aparecer bajo "Gastos"/"Ingreso" ni en sus totales.
-        FinanzData.getTransactions({
-            period: currentFilter,
-            type: currentTransactionType,
-            includeInternal: currentTransactionType === 'all'
-        }),
-        FinanzData.getDashboardStats(currentFilter)
-    ]);
+    const from = document.getElementById('tx-range-from')?.value || '';
+    const to = document.getElementById('tx-range-to')?.value || '';
+    const useRange = !!(from && to && from <= to);
 
-    // Actualizar Totales en el Header de transacciones
+    const todayISO = FinanzUtils.toLocalISODate(new Date());
+    ['tx-range-from', 'tx-range-to'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.max = todayISO;
+    });
+
+    // Se trae TODO el periodo (ambos tipos, tambien los movimientos internos) y
+    // se filtra aqui: asi los totales de arriba siguen siendo del periodo aunque
+    // estes viendo solo "Gastos", y buscar/filtrar no necesita otra consulta.
+    const [txsRaw, accounts] = await Promise.all([
+        useRange
+            ? FinanzData.getTransactionsInRange(from, to, { includeInternal: true })
+            : FinanzData.getTransactions({ period: currentFilter, includeInternal: true }),
+        FinanzData.getAccounts()
+    ]);
+    txAccountNameById = Object.fromEntries(accounts.map(a => [a.id, a.name]));
+
+    const txs = useRange
+        ? [...txsRaw].sort((a, b) =>
+            b.date.localeCompare(a.date) || String(b.created_at || '').localeCompare(String(a.created_at || '')))
+        : txsRaw;
+
+    // Opciones del filtro de categoria: las que existen en este periodo
+    const catSelect = document.getElementById('tx-filter-category');
+    let selectedCategory = catSelect ? catSelect.value : '';
+    if (catSelect) {
+        const seen = new Map();
+        txs.forEach(t => { if (!seen.has(t.category)) seen.set(t.category, categoryLabel(t)); });
+        const options = [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+        catSelect.innerHTML = '<option value="">Todas las categorías</option>' +
+            options.map(([id, label]) => `<option value="${escapeHTML(id)}">${escapeHTML(label)}</option>`).join('');
+        if (selectedCategory && !seen.has(selectedCategory)) selectedCategory = '';
+        catSelect.value = selectedCategory;
+    }
+
+    const term = normalizeSearch((document.getElementById('tx-search')?.value || '').trim());
+    let rows = txs;
+    if (selectedCategory) rows = rows.filter(t => t.category === selectedCategory);
+    if (term) {
+        rows = rows.filter(t =>
+            normalizeSearch(`${t.title} ${categoryLabel(t)} ${t.category} ${t.note || ''}`).includes(term));
+    }
+
+    // Totales = lo que coincide con la busqueda/categoria, sin movimientos
+    // internos (no son gasto ni ingreso real) y sin importar la pestana de tipo.
+    const real = rows.filter(t => !FinanzUtils.isInternalMovement(t));
+    const sum = (type) => real.filter(t => t.type === type).reduce((s, t) => s + parseFloat(t.amount), 0);
     const incomeEl = document.getElementById('tx-income-total');
     const expenseEl = document.getElementById('tx-expense-total');
-    if (incomeEl) incomeEl.textContent = FinanzUtils.formatCurrency(stats.income);
-    if (expenseEl) expenseEl.textContent = FinanzUtils.formatCurrency(stats.expense);
+    if (incomeEl) incomeEl.textContent = FinanzUtils.formatCurrency(sum('income'));
+    if (expenseEl) expenseEl.textContent = FinanzUtils.formatCurrency(sum('expense'));
 
-    if (txs.length === 0) {
-        list.innerHTML = '<div class="empty-state animate-fade-in"><p>No hay movimientos aún.</p></div>';
+    // Los movimientos internos (transferencias, depositos a bolsillos) se
+    // listan solo en "Todos": no deben aparecer bajo "Gastos"/"Ingreso".
+    const shown = currentTransactionType === 'all'
+        ? rows
+        : real.filter(t => t.type === currentTransactionType);
+    lastShownTransactions = shown;
+
+    if (shown.length === 0) {
+        const msg = txs.length === 0
+            ? 'No hay movimientos aún.'
+            : 'No hay movimientos que coincidan con tu búsqueda o filtros.';
+        list.innerHTML = `<div class="empty-state animate-fade-in"><p>${msg}</p></div>`;
         return;
     }
 
-    list.innerHTML = txs.map(t => {
+    list.innerHTML = shown.map(t => {
         const internal = FinanzUtils.isInternalMovement(t);
         return `
         <div class="transaction-item animate-fade-in" style="display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md);">
@@ -641,8 +752,8 @@ async function renderTransactions() {
                     <i class="fas fa-${internal ? 'right-left' : (t.type === 'income' ? 'arrow-up' : 'arrow-down')}"></i>
                 </div>
                 <div class="transaction-info" style="flex: 1; min-width: 0;">
-                    <div class="transaction-title">${t.title}</div>
-                    <div class="transaction-category">${t.category} · ${FinanzUtils.formatDate(t.date)}</div>
+                    <div class="transaction-title">${escapeHTML(t.title)}</div>
+                    <div class="transaction-category">${escapeHTML(categoryLabel(t))} · ${FinanzUtils.formatDate(t.date)}</div>
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0;">
@@ -660,6 +771,69 @@ async function renderTransactions() {
     `;
     }).join('');
 }
+
+// Exporta a CSV (abre directo en Excel / Google Sheets) lo que se ve ahora en
+// la lista: respeta periodo, rango, busqueda, categoria y pestana de tipo.
+async function exportTransactionsCSV() {
+    const rows = lastShownTransactions;
+    if (!rows.length) {
+        showToast('No hay movimientos para exportar', 'error');
+        return;
+    }
+
+    // Una celda que empieza con = + - @ la tomaria Excel como formula
+    // (inyeccion por CSV): se le antepone una comilla.
+    const cell = (v) => {
+        let s = String(v ?? '');
+        if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+        return `"${s.replace(/"/g, '""')}"`;
+    };
+
+    const header = ['Fecha', 'Tipo', 'Categoría', 'Título', 'Monto', 'Cuenta', 'Nota'];
+    const lines = [header.map(cell).join(',')];
+    rows.forEach(t => {
+        const tipo = FinanzUtils.isInternalMovement(t) ? 'Interno' : (t.type === 'income' ? 'Ingreso' : 'Gasto');
+        lines.push([
+            cell(String(t.date).slice(0, 10)),
+            cell(tipo),
+            cell(categoryLabel(t)),
+            cell(t.title),
+            Number(t.amount).toFixed(2),
+            cell(txAccountNameById[t.account_id] || ''),
+            cell(t.note || '')
+        ].join(','));
+    });
+
+    // BOM al inicio para que Excel lea bien los acentos (UTF-8)
+    const csv = '﻿' + lines.join('\r\n');
+    const fileName = `finia-movimientos-${FinanzUtils.toLocalISODate(new Date())}.csv`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+
+    // En el celular, la hoja de compartir permite "Guardar en Archivos" / enviar
+    // por WhatsApp; en computadora, descarga directa.
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    try {
+        const file = new File([blob], fileName, { type: 'text/csv' });
+        if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'Movimientos de Finia' });
+            return;
+        }
+    } catch (err) {
+        if (err && err.name === 'AbortError') return; // cerro la hoja de compartir
+        // cualquier otro error: se cae a la descarga normal
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast(`Exportados ${rows.length} movimientos`);
+}
+
 
 // Texto del encabezado de Analisis con el rango REAL que consulta el filtro
 // activo (el mismo getDateRange que usa getTransactions), p. ej. "27 sep - Hoy",
@@ -1019,8 +1193,8 @@ async function renderDayModal() {
                 <i class="fas fa-${internal ? 'right-left' : (t.type === 'income' ? 'arrow-up' : 'arrow-down')}"></i>
             </div>
             <div class="day-tx-info">
-                <div class="transaction-title">${t.title}</div>
-                <div class="transaction-category">${t.category}</div>
+                <div class="transaction-title">${escapeHTML(t.title)}</div>
+                <div class="transaction-category">${escapeHTML(categoryLabel(t))}</div>
             </div>
             <div class="transaction-amount ${amountClass}">${sign}${FinanzUtils.formatCurrency(t.amount)}</div>
             <div class="day-tx-actions">${editBtn}
@@ -1480,6 +1654,12 @@ function addChatMessage(text, side) {
 async function setFilter(filter) {
     currentFilter = filter;
 
+    // Elegir un periodo (Hoy, Ayer...) reemplaza el rango de fechas personalizado
+    ['tx-range-from', 'tx-range-to'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
     // Actualizar UI
     document.querySelectorAll('.filter-tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.filter === filter);
@@ -1653,6 +1833,13 @@ window.setTxCategory = setTxCategory;
 window.setTxType = setTxType;
 window.openCalendarDay = openCalendarDay;
 window.openEditTransaction = openEditTransaction;
+window.renderTransactions = renderTransactions;
+window.onTxSearchInput = onTxSearchInput;
+window.focusTxSearch = focusTxSearch;
+window.toggleTxFilters = toggleTxFilters;
+window.onTxRangeChange = onTxRangeChange;
+window.clearTxFilters = clearTxFilters;
+window.exportTransactionsCSV = exportTransactionsCSV;
 window.addTransactionForSelectedDay = addTransactionForSelectedDay;
 window.openAddTransaction = openAddTransaction;
 window.assistantQuickAction = assistantQuickAction;

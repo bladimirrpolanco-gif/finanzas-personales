@@ -1135,6 +1135,47 @@
     min-height: 52px;
 }
 
+/* Busqueda y filtros de Transacciones */
+.tx-search-wrap {
+    position: relative;
+    margin-bottom: var(--spacing-md);
+}
+
+.tx-search-wrap > i {
+    position: absolute;
+    left: var(--spacing-md);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.tx-search-wrap .form-input {
+    padding-left: 44px;
+}
+
+.tx-filters-panel {
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+}
+
+.tx-filters-panel[hidden] {
+    display: none;
+}
+
+.tx-range-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+.tx-range-row .form-group {
+    min-width: 0;
+}
+
 /* Ventana "movimientos del dia" (calendario) */
 .day-tx-list {
     display: flex;

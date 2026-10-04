@@ -808,11 +808,14 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    <button class="header-icon">
+                    <button class="header-icon" onclick="focusTxSearch()" aria-label="Buscar">
                         <i class="fas fa-search"></i>
                     </button>
-                    <button class="header-icon">
+                    <button class="header-icon" id="tx-filter-toggle" onclick="toggleTxFilters()" aria-label="Filtros">
                         <i class="fas fa-filter"></i>
+                    </button>
+                    <button class="header-icon" onclick="exportTransactionsCSV()" aria-label="Exportar a Excel (CSV)">
+                        <i class="fas fa-download"></i>
                     </button>
                 </div>
             </header>
@@ -844,6 +847,36 @@
                         onclick="setFilter('yesterday')">Ayer</button>
                     <button class="tab filter-tab" data-filter="week" onclick="setFilter('week')">Esta
                         Semana</button>
+                </div>
+
+                <!-- Búsqueda -->
+                <div class="tx-search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="search" id="tx-search" class="form-input" autocomplete="off"
+                        placeholder="Buscar por título, categoría o nota" oninput="onTxSearchInput()">
+                </div>
+
+                <!-- Filtros avanzados (categoría y rango de fechas) -->
+                <div id="tx-filters-panel" class="tx-filters-panel" hidden>
+                    <div class="form-group">
+                        <label class="form-label">Categoría</label>
+                        <select id="tx-filter-category" class="form-input form-select" onchange="renderTransactions()">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+                    <div class="tx-range-row">
+                        <div class="form-group">
+                            <label class="form-label">Desde</label>
+                            <input type="date" id="tx-range-from" class="form-input form-date" onchange="onTxRangeChange()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Hasta</label>
+                            <input type="date" id="tx-range-to" class="form-input form-date" onchange="onTxRangeChange()">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-block" onclick="clearTxFilters()">
+                        <i class="fas fa-rotate-left"></i> Limpiar filtros
+                    </button>
                 </div>
 
                 <!-- Filtros de Tipo -->
