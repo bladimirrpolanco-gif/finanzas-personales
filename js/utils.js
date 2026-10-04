@@ -52,8 +52,19 @@ function toLocalISODate(date) {
 }
 
 // ===== FORMATEO DE FECHAS =====
+// Parsea un "YYYY-MM-DD" como fecha LOCAL. `new Date("2026-10-03")` lo toma
+// como medianoche UTC, que en un timezone detras de UTC (ej. RD, UTC-4) es
+// el 2 de octubre a las 8pm: al mostrarlo salia el dia anterior.
+function parseLocalDate(date) {
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        const [y, m, d] = date.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+    return new Date(date);
+}
+
 function formatDate(date, format = 'short') {
-    const d = new Date(date);
+    const d = parseLocalDate(date);
     const options = {
         short: { day: 'numeric', month: 'short' },
         medium: { day: 'numeric', month: 'short', year: 'numeric' },

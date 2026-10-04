@@ -633,7 +633,7 @@ async function renderTransactions() {
                 </div>
                 <div class="transaction-info" style="flex: 1; min-width: 0;">
                     <div class="transaction-title">${t.title}</div>
-                    <div class="transaction-category">${t.category}</div>
+                    <div class="transaction-category">${t.category} · ${FinanzUtils.formatDate(t.date)}</div>
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0;">
@@ -789,11 +789,17 @@ async function renderCalendar() {
         html += '<div class="calendar-day empty"></div>';
     }
 
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     for (let day = 1; day <= daysInMonth; day++) {
         const totals = byDay[day];
         const isToday = isCurrentMonth && today.getDate() === day;
+        const dayDate = new Date(year, month, day);
+        const isFuture = dayDate > todayStart;
+        // Dias futuros no se pueden tocar (no se permiten movimientos futuros)
+        const dayClasses = `calendar-day${isToday ? ' today' : ''}${isFuture ? ' future' : ' clickable'}`;
+        const dayClick = isFuture ? '' : ` onclick="openCalendarDay('${toISODate(dayDate)}')"`;
         html += `
-            <div class="calendar-day${isToday ? ' today' : ''}">
+            <div class="${dayClasses}"${dayClick}>
                 <span class="calendar-day-num">${day}</span>
                 ${totals && totals.income > 0 ? `<span class="calendar-day-income">${formatCalendarAmount(totals.income)}</span>` : ''}
                 ${totals && totals.expense > 0 ? `<span class="calendar-day-expense">${formatCalendarAmount(-totals.expense)}</span>` : ''}
@@ -830,13 +836,19 @@ async function openPockets() {
     await renderPocketsList();
 }
 
-async function openAddTransaction(type = 'expense') {
+// Cambia entre Gasto e Ingreso dentro del formulario: las categorias de uno
+// y otro son distintas, asi que se vuelven a pintar y se reinicia la elegida.
+function setTxType(type) {
     const txTypeInput = document.getElementById('tx-type');
     if (txTypeInput) txTypeInput.value = type;
 
-    await fillAccountSelects(['tx-account']);
+    document.querySelectorAll('.tx-type-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.txType === type);
+    });
 
-    // Set default categories from utils
+    const catInput = document.getElementById('tx-category');
+    if (catInput) catInput.value = 'other';
+
     const categories = FinanzUtils.CATEGORIES[type];
     const catContainer = document.getElementById('category-options');
     if (catContainer) {
@@ -852,8 +864,29 @@ async function openAddTransaction(type = 'expense') {
     const otherInput = document.getElementById('tx-category-other');
     if (otherWrap) otherWrap.style.display = 'none';
     if (otherInput) otherInput.value = '';
+}
+
+// `dateISO` ("YYYY-MM-DD") es opcional: si viene (ej. al tocar un dia del
+// calendario) el formulario abre con esa fecha; si no, con la de hoy. No se
+// permiten fechas futuras: el saldo de la cuenta cambia al guardar, y un
+// movimiento de manana no deberia afectar el saldo de hoy.
+async function openAddTransaction(type = 'expense', dateISO = null) {
+    await fillAccountSelects(['tx-account']);
+    setTxType(type);
+
+    const todayISO = FinanzUtils.toLocalISODate(new Date());
+    const dateInput = document.getElementById('tx-date');
+    if (dateInput) {
+        dateInput.max = todayISO;
+        dateInput.value = dateISO && dateISO <= todayISO ? dateISO : todayISO;
+    }
 
     openModal('modal-add-transaction');
+}
+
+// Tocar un dia del calendario: abrir el formulario con ese dia ya elegido.
+function openCalendarDay(dateISO) {
+    openAddTransaction('expense', dateISO);
 }
 
 function setTxCategory(catId) {
@@ -904,12 +937,20 @@ async function saveTransaction(e) {
         if (customName) category = customName;
     }
 
+    const todayISO = FinanzUtils.toLocalISODate(new Date());
+    const date = document.getElementById('tx-date').value || todayISO;
+    if (date > todayISO) {
+        showToast('No puedes registrar movimientos con fecha futura', 'error');
+        return;
+    }
+
     const tx = {
         amount: parseFloat(document.getElementById('tx-amount').value),
         title: document.getElementById('tx-title').value,
         type: document.getElementById('tx-type').value,
         category: category,
         accountId: accountId,
+        date: date,
         note: document.getElementById('tx-note').value
     };
 
@@ -1459,6 +1500,8 @@ window.saveTransfer = saveTransfer;
 window.saveBudget = saveBudget;
 window.openBudgetModal = openBudgetModal;
 window.setTxCategory = setTxCategory;
+window.setTxType = setTxType;
+window.openCalendarDay = openCalendarDay;
 window.openAddTransaction = openAddTransaction;
 window.assistantQuickAction = assistantQuickAction;
 window.sendAssistantMessage = sendAssistantMessage;
