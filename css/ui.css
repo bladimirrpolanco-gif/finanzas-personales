@@ -794,7 +794,6 @@
     color: var(--bg-primary);
     opacity: 0.8;
     margin-bottom: var(--spacing-md);
-    overflow-wrap: anywhere;
 }
 
 .profile-badge {
@@ -2055,7 +2054,8 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 280px;
+    /* un poco mas ancho (antes 280px) para que un correo largo quepa completo */
+    width: min(300px, 86vw);
     height: 100vh;
     background: var(--bg-secondary);
     z-index: calc(var(--z-modal) + 1);
@@ -2098,8 +2098,36 @@
     font-size: var(--font-size-xs);
     color: var(--text-secondary);
     line-height: 1.35;
-    /* el correo se parte antes de la @ (ver setEmailText); esto es solo la red de seguridad */
-    overflow-wrap: anywhere;
+}
+
+/* Correo en una sola linea: se recorta con "…" lo de antes de la @ y el
+   dominio siempre se ve (ver setEmailText). */
+.email-line {
+    display: flex;
+    min-width: 0;
+}
+
+/* La parte de antes de la @ cede casi todo el espacio (flex-shrink alto) pero
+   siempre deja visibles unos 6 caracteres; el dominio solo se recorta si ni
+   asi cabe. */
+.email-local {
+    flex: 0 10 auto;
+    min-width: 6ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.email-domain {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-email.email-line {
+    justify-content: center;
 }
 
 .sidebar-nav {

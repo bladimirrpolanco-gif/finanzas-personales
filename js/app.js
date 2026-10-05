@@ -2502,24 +2502,28 @@ function toggleSidebar() {
     }
 }
 
-// Escribe un correo permitiendo un salto de linea justo ANTES de la "@"
-// (<wbr> no agrega ningun caracter): si no cabe en una linea, queda
-//   antoniopolancotrader
-//   @gmail.com
-// en vez de salirse del borde o cortarse al azar. textContent sigue siendo el correo completo.
+// Escribe un correo en UNA sola linea. Si no cabe, se recorta con "…" la parte
+// de antes de la "@" y el dominio siempre queda visible:
+//   antoniopolancotra…@gmail.com
+// (como hacen Gmail, Slack, etc.). El correo completo queda en el tooltip y
+// textContent sigue siendo el correo entero.
 function setEmailText(el, email) {
     if (!el) return;
     el.textContent = '';
+    el.title = email;
     const at = String(email).indexOf('@');
     if (at <= 0) {
         el.textContent = email;
         return;
     }
-    el.append(
-        document.createTextNode(email.slice(0, at)),
-        document.createElement('wbr'),
-        document.createTextNode(email.slice(at))
-    );
+    const local = document.createElement('span');
+    local.className = 'email-local';
+    local.textContent = email.slice(0, at);
+    const domain = document.createElement('span');
+    domain.className = 'email-domain';
+    domain.textContent = email.slice(at);
+    el.classList.add('email-line');
+    el.append(local, domain);
 }
 
 function updateUserProfileUI() {
