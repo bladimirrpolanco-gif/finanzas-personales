@@ -57,6 +57,14 @@ function setupAuthStateListener() {
     window.supabaseClient.auth.onAuthStateChange(async (_event, session) => {
         FinanzData.user = session?.user || null;
 
+        // Renovar la sesion (cada hora) o editar el perfil NO es un inicio de
+        // sesion: solo se refresca el nombre. Antes tambien mandaba al usuario
+        // de vuelta a Inicio, sacandolo de lo que estuviera haciendo.
+        if (session?.user && (_event === 'TOKEN_REFRESHED' || _event === 'USER_UPDATED')) {
+            updateUserProfileUI();
+            return;
+        }
+
         if (session?.user) {
             const allowed = await FinanzData.init();
             if (!allowed) {
@@ -1839,6 +1847,183 @@ async function setTransactionType(type) {
     await renderTransactions();
 }
 
+// ===== PERFIL: EDITAR, FUNCIONES & ERRORES Y VALORACION =====
+// Traduce los errores mas comunes de Supabase Auth al espanol.
+function friendlyAuthError(message) {
+    const m = String(message || '');
+    if (/different from the old password/i.test(m)) return 'La nueva contraseña debe ser distinta a la actual.';
+    if (/at least \d+ characters/i.test(m)) return 'La contraseña es muy corta.';
+    if (/weak|easy to guess|pwned/i.test(m)) return 'Esa contraseña es muy fácil de adivinar. Elige otra.';
+    if (/reauthentication|recently logged in|session/i.test(m)) {
+        return 'Por seguridad, cierra sesión, vuelve a entrar y repite el cambio.';
+    }
+    return m;
+}
+
+function openEditProfile() {
+    const user = FinanzData.user;
+    document.getElementById('form-edit-profile').reset();
+    document.getElementById('profile-edit-name').value =
+        user?.user_metadata?.full_name || user?.user_metadata?.name || '';
+    document.getElementById('profile-edit-email').value = user?.email || '';
+    openModal('modal-edit-profile');
+}
+
+async function saveProfile(e) {
+    if (e) e.preventDefault();
+
+    const fullName = document.getElementById('profile-edit-name').value.trim();
+    const password = document.getElementById('profile-edit-password').value;
+    const password2 = document.getElementById('profile-edit-password2').value;
+
+    if (password || password2) {
+        if (password.length < 6) {
+            showToast('La contraseña debe tener al menos 6 caracteres', 'error');
+            return;
+        }
+        if (password !== password2) {
+            showToast('Las contraseñas no coinciden', 'error');
+            return;
+        }
+    }
+
+    const btn = document.getElementById('profile-save-btn');
+    btn.disabled = true;
+    try {
+        await FinanzData.updateProfile({ fullName, newPassword: password || null });
+        updateUserProfileUI();
+        closeModal('modal-edit-profile');
+        showToast(password ? 'Perfil y contraseña actualizados' : 'Perfil actualizado');
+    } catch (err) {
+        console.error('saveProfile error:', err);
+        showToast(friendlyAuthError(err.message), 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// Datos tecnicos que ayudan a reproducir un error (no incluyen nada financiero)
+function feedbackContext() {
+    return {
+        page: currentPage,
+        userAgent: navigator.userAgent.slice(0, 300),
+        screen: `${window.innerWidth}x${window.innerHeight}`,
+        installedApp: isStandaloneApp(),
+        language: navigator.language,
+        path: window.location.pathname
+    };
+}
+
+function feedbackErrorMessage(err) {
+    console.error('feedback error:', err);
+    return isMissingTableError(err)
+        ? 'Esta función todavía no está activada en el servidor.'
+        : 'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.';
+}
+
+const FEEDBACK_TEXT = {
+    bug: {
+        label: '¿Qué pasó?',
+        placeholder: 'Cuéntanos qué estabas haciendo y qué salió mal...',
+        hint: 'Mientras más detalle, más fácil lo arreglamos. Incluimos tu correo y datos básicos del dispositivo para poder ayudarte.'
+    },
+    idea: {
+        label: '¿Qué función te gustaría?',
+        placeholder: 'Describe la idea: qué quieres poder hacer y para qué...',
+        hint: 'Leemos todas las ideas. Incluimos tu correo para poder responderte.'
+    }
+};
+let currentFeedbackType = 'bug';
+
+function openFeedback(type = 'bug') {
+    document.getElementById('form-feedback').reset();
+    setFeedbackType(type);
+    openModal('modal-feedback');
+}
+
+function setFeedbackType(type) {
+    currentFeedbackType = type;
+    document.querySelectorAll('.feedback-type-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.feedbackType === type);
+    });
+    const text = FEEDBACK_TEXT[type];
+    document.getElementById('feedback-label').textContent = text.label;
+    document.getElementById('feedback-message').placeholder = text.placeholder;
+    document.getElementById('feedback-hint').textContent = text.hint;
+}
+
+async function submitFeedback(e) {
+    if (e) e.preventDefault();
+
+    const message = document.getElementById('feedback-message').value.trim();
+    if (message.length < 5) {
+        showToast('Escribe un poco más de detalle (mínimo 5 caracteres)', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('feedback-send-btn');
+    btn.disabled = true;
+    try {
+        await FinanzData.sendFeedback({ type: currentFeedbackType, message, context: feedbackContext() });
+        closeModal('modal-feedback');
+        showToast(currentFeedbackType === 'bug' ? '¡Gracias! Revisaremos el error' : '¡Gracias por tu idea!');
+    } catch (err) {
+        showToast(feedbackErrorMessage(err), 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+const RATING_LABELS = ['Toca una estrella', 'Muy mala', 'Mala', 'Regular', 'Buena', '¡Excelente!'];
+let currentRating = 0;
+
+function openRating() {
+    document.getElementById('form-rating').reset();
+    currentRating = 0;
+    updateRatingUI();
+    openModal('modal-rating');
+}
+
+function setRating(value) {
+    currentRating = value;
+    updateRatingUI();
+}
+
+function updateRatingUI() {
+    document.querySelectorAll('#rating-stars .rating-star').forEach(star => {
+        const active = Number(star.dataset.value) <= currentRating;
+        star.classList.toggle('active', active);
+        star.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    document.getElementById('rating-label').textContent = RATING_LABELS[currentRating];
+    document.getElementById('rating-send-btn').disabled = currentRating === 0;
+}
+
+async function submitRating(e) {
+    if (e) e.preventDefault();
+    if (currentRating < 1 || currentRating > 5) {
+        showToast('Elige de 1 a 5 estrellas', 'error');
+        return;
+    }
+
+    const comment = document.getElementById('rating-comment').value.trim();
+    const btn = document.getElementById('rating-send-btn');
+    btn.disabled = true;
+    try {
+        await FinanzData.sendFeedback({
+            type: 'rating',
+            rating: currentRating,
+            message: comment || null,
+            context: feedbackContext()
+        });
+        closeModal('modal-rating');
+        showToast('¡Gracias por tu valoración! ⭐');
+    } catch (err) {
+        showToast(feedbackErrorMessage(err), 'error');
+        btn.disabled = false;
+    }
+}
+
 // ===== GASTOS RECURRENTES =====
 const WEEKDAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 let lastRecurringRun = 0;
@@ -2464,6 +2649,14 @@ window.toggleTxFilters = toggleTxFilters;
 window.onTxRangeChange = onTxRangeChange;
 window.clearTxFilters = clearTxFilters;
 window.exportTransactionsCSV = exportTransactionsCSV;
+window.openEditProfile = openEditProfile;
+window.saveProfile = saveProfile;
+window.openFeedback = openFeedback;
+window.setFeedbackType = setFeedbackType;
+window.submitFeedback = submitFeedback;
+window.openRating = openRating;
+window.setRating = setRating;
+window.submitRating = submitRating;
 window.activatePushFromPrompt = activatePushFromPrompt;
 window.dismissPushPrompt = dismissPushPrompt;
 window.openPushSettings = openPushSettings;

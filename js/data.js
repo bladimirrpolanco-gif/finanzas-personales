@@ -511,6 +511,41 @@ class FinanzDataService {
         }
     }
 
+    // ===== PERFIL =====
+    // El nombre se guarda en el propio usuario de Supabase Auth (user_metadata.full_name,
+    // que updateUserProfileUI ya lee), asi que no hace falta ninguna tabla nueva.
+    async updateProfile({ fullName, newPassword }) {
+        if (!this.user) throw new Error('No hay una sesión iniciada');
+
+        const attrs = {};
+        if (fullName !== undefined) attrs.data = { full_name: fullName };
+        if (newPassword) attrs.password = newPassword;
+        if (Object.keys(attrs).length === 0) return this.user;
+
+        const { data, error } = await this.client.auth.updateUser(attrs);
+        if (error) throw new Error(error.message);
+        if (data && data.user) this.user = data.user;
+        return this.user;
+    }
+
+    // ===== COMENTARIOS Y VALORACION =====
+    // Tabla feedback (ver supabase/feedback.sql). type: 'bug' | 'idea' | 'rating'.
+    async sendFeedback({ type, message = null, rating = null, context = {} }) {
+        if (!this.user) throw new Error('No hay una sesión iniciada');
+
+        const { error } = await this.client
+            .from('feedback')
+            .insert([{
+                user_id: this.user.id,
+                user_email: this.user.email || null,
+                type,
+                rating,
+                message,
+                context
+            }]);
+        if (error) throw new Error(error.message);
+    }
+
     // ===== NOTIFICACIONES PUSH =====
     // Tabla push_subscriptions + funcion send-push (ver supabase/push_notifications.sql
     // y supabase/functions/send-push/index.ts). `sub` es PushSubscription.toJSON().

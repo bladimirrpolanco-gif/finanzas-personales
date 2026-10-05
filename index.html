@@ -396,6 +396,121 @@
         </div>
     </div>
 
+    <!-- ===== MODAL: EDITAR PERFIL ===== -->
+    <div id="modal-edit-profile" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Editar perfil</h3>
+                <button class="modal-close" onclick="closeModal('modal-edit-profile')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-edit-profile" class="modal-body" onsubmit="saveProfile(event)">
+                <div class="form-group">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" id="profile-edit-name" class="form-input" maxlength="60"
+                        placeholder="¿Cómo quieres que te llamemos?" autocomplete="name">
+                    <small class="form-hint">Es el nombre que verás en el saludo de Inicio y en el menú.</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Correo</label>
+                    <input type="email" id="profile-edit-email" class="form-input" disabled>
+                    <small class="form-hint">El correo no se puede cambiar desde aquí.</small>
+                </div>
+
+                <p class="profile-edit-divider">Cambiar contraseña (opcional)</p>
+
+                <div class="form-group">
+                    <label class="form-label">Nueva contraseña</label>
+                    <input type="password" id="profile-edit-password" class="form-input" minlength="6"
+                        placeholder="Déjala vacía para no cambiarla" autocomplete="new-password">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Repite la nueva contraseña</label>
+                    <input type="password" id="profile-edit-password2" class="form-input" minlength="6"
+                        autocomplete="new-password">
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block" id="profile-save-btn">
+                        <i class="fas fa-check"></i> Guardar cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: FUNCIONES & ERRORES ===== -->
+    <div id="modal-feedback" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Funciones &amp; Errores</h3>
+                <button class="modal-close" onclick="closeModal('modal-feedback')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-feedback" class="modal-body" onsubmit="submitFeedback(event)">
+                <div class="tabs tx-type-tabs">
+                    <button type="button" class="tab feedback-type-tab active" data-feedback-type="bug"
+                        onclick="setFeedbackType('bug')">Reportar un error</button>
+                    <button type="button" class="tab feedback-type-tab" data-feedback-type="idea"
+                        onclick="setFeedbackType('idea')">Sugerir una función</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" id="feedback-label">¿Qué pasó?</label>
+                    <textarea id="feedback-message" class="form-input feedback-textarea" rows="5" maxlength="2000"
+                        required minlength="5"></textarea>
+                    <small class="form-hint" id="feedback-hint"></small>
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block" id="feedback-send-btn">
+                        <i class="fas fa-paper-plane"></i> Enviar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: VALORA FINIA ===== -->
+    <div id="modal-rating" class="modal-overlay modal-centered">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Valora Finia</h3>
+                <button class="modal-close" onclick="closeModal('modal-rating')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-rating" class="modal-body" onsubmit="submitRating(event)">
+                <p class="recurring-intro" style="text-align: center;">¿Qué tal te va con Finia?</p>
+
+                <div class="rating-stars" id="rating-stars" role="radiogroup" aria-label="Valoración de 1 a 5 estrellas">
+                    <button type="button" class="rating-star" data-value="1" onclick="setRating(1)" aria-label="1 estrella"><i class="fas fa-star"></i></button>
+                    <button type="button" class="rating-star" data-value="2" onclick="setRating(2)" aria-label="2 estrellas"><i class="fas fa-star"></i></button>
+                    <button type="button" class="rating-star" data-value="3" onclick="setRating(3)" aria-label="3 estrellas"><i class="fas fa-star"></i></button>
+                    <button type="button" class="rating-star" data-value="4" onclick="setRating(4)" aria-label="4 estrellas"><i class="fas fa-star"></i></button>
+                    <button type="button" class="rating-star" data-value="5" onclick="setRating(5)" aria-label="5 estrellas"><i class="fas fa-star"></i></button>
+                </div>
+                <p class="rating-label" id="rating-label">Toca una estrella</p>
+
+                <div class="form-group">
+                    <label class="form-label">Comentario (opcional)</label>
+                    <textarea id="rating-comment" class="form-input feedback-textarea" rows="3" maxlength="2000"
+                        placeholder="¿Qué te gusta? ¿Qué mejorarías?"></textarea>
+                </div>
+
+                <div class="modal-footer" style="border: none; padding: 0;">
+                    <button type="submit" class="btn btn-primary btn-block" id="rating-send-btn" disabled>
+                        <i class="fas fa-paper-plane"></i> Enviar valoración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ===== MODAL: CUENTAS ===== -->
     <div id="modal-accounts" class="modal-overlay modal-centered">
         <div class="modal">
@@ -1242,7 +1357,7 @@
             <main class="app-content">
                 <!-- Card de Perfil -->
                 <div class="profile-header animate-fade-in-up">
-                    <button class="profile-edit">
+                    <button class="profile-edit" onclick="openEditProfile()" aria-label="Editar perfil">
                         <i class="fas fa-pen"></i>
                     </button>
                     <div class="profile-avatar">
@@ -1262,7 +1377,7 @@
                         <i class="fas fa-users"></i> Comunidad
                     </h3>
 
-                    <div class="profile-menu-item">
+                    <div class="profile-menu-item" onclick="openFeedback('bug')">
                         <div class="profile-menu-icon">
                             <i class="fas fa-lightbulb"></i>
                         </div>
@@ -1275,13 +1390,13 @@
                         </div>
                     </div>
 
-                    <div class="profile-menu-item">
+                    <div class="profile-menu-item" onclick="openRating()">
                         <div class="profile-menu-icon">
                             <i class="fas fa-star"></i>
                         </div>
                         <div class="profile-menu-text">
                             <h4>Valora Finia</h4>
-                            <p>Comparte tu experiencia en la tienda</p>
+                            <p>Cuéntanos qué tal te va con la app</p>
                         </div>
                         <div class="profile-menu-arrow">
                             <i class="fas fa-chevron-right"></i>
@@ -1295,7 +1410,7 @@
                         <i class="fas fa-user-cog"></i> Mi Cuenta
                     </h3>
 
-                    <div class="profile-menu-item">
+                    <div class="profile-menu-item" onclick="openEditProfile()">
                         <div class="profile-menu-icon">
                             <i class="fas fa-pen"></i>
                         </div>
