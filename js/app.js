@@ -2502,6 +2502,26 @@ function toggleSidebar() {
     }
 }
 
+// Escribe un correo permitiendo un salto de linea justo ANTES de la "@"
+// (<wbr> no agrega ningun caracter): si no cabe en una linea, queda
+//   antoniopolancotrader
+//   @gmail.com
+// en vez de salirse del borde o cortarse al azar. textContent sigue siendo el correo completo.
+function setEmailText(el, email) {
+    if (!el) return;
+    el.textContent = '';
+    const at = String(email).indexOf('@');
+    if (at <= 0) {
+        el.textContent = email;
+        return;
+    }
+    el.append(
+        document.createTextNode(email.slice(0, at)),
+        document.createElement('wbr'),
+        document.createTextNode(email.slice(at))
+    );
+}
+
 function updateUserProfileUI() {
     const userName = FinanzData.user?.user_metadata?.full_name || FinanzData.user?.user_metadata?.name || FinanzData.user?.email?.split('@')[0] || 'Usuario Demo';
     const userEmail = FinanzData.user?.email || 'demo@finia.app';
@@ -2511,7 +2531,7 @@ function updateUserProfileUI() {
     const sbName = document.getElementById('sidebar-user-name');
     const sbEmail = document.getElementById('sidebar-user-email');
     if (sbName) sbName.textContent = userName;
-    if (sbEmail) sbEmail.textContent = userEmail;
+    setEmailText(sbEmail, userEmail);
 
     // 2. Dashboard Header Initials
     const headerInitials = document.getElementById('user-initials');
@@ -2535,7 +2555,7 @@ function updateUserProfileUI() {
     const profileEmail = document.getElementById('profile-email');
     const profileAvatar = document.getElementById('profile-avatar-text');
     if (profileName) profileName.textContent = userName;
-    if (profileEmail) profileEmail.textContent = userEmail;
+    setEmailText(profileEmail, userEmail);
     if (profileAvatar) profileAvatar.textContent = initials;
 }
 

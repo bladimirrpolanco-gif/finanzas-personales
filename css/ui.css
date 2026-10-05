@@ -794,6 +794,7 @@
     color: var(--bg-primary);
     opacity: 0.8;
     margin-bottom: var(--spacing-md);
+    overflow-wrap: anywhere;
 }
 
 .profile-badge {
@@ -2079,15 +2080,26 @@
     gap: var(--spacing-md);
 }
 
+/* min-width:0 deja que el bloque se encoja dentro del menu en vez de empujar
+   el contenido fuera (un correo largo se salia del borde del menu). */
+.sidebar-user-info {
+    flex: 1;
+    min-width: 0;
+}
+
 .sidebar-user-info h3 {
     font-size: var(--font-size-base);
     font-weight: 600;
     margin-bottom: 2px;
+    overflow-wrap: anywhere;
 }
 
 .sidebar-user-info p {
     font-size: var(--font-size-xs);
     color: var(--text-secondary);
+    line-height: 1.35;
+    /* el correo se parte antes de la @ (ver setEmailText); esto es solo la red de seguridad */
+    overflow-wrap: anywhere;
 }
 
 .sidebar-nav {
