@@ -10,16 +10,16 @@
    desenfocan lo que hay detras, con borde fino claro y brillo arriba. */
 
 :root {
-    --glass-bg: rgba(255, 255, 255, 0.075);
-    --glass-border: rgba(255, 255, 255, 0.15);
-    --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.30);
-    --glass-blur: blur(20px) saturate(150%);
-    /* La tarjeta principal lleva un tinte ESMERALDA (el lima sobre verde oscuro
-       se ponia oliva/turbio); el lima queda para cifras, grafica y botones. */
-    --glass-accent-bg: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(16, 185, 129, 0.05) 50%, rgba(255, 255, 255, 0.06) 100%);
-    --glass-accent-border: rgba(110, 231, 183, 0.30);
-    --glass-nav-bg: rgba(12, 34, 24, 0.60);
+    --glass-bg: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+    --glass-blur: blur(20px) saturate(120%);
+    /* Casi neutra: apenas un susurro de verde. El color protagonista es el lima
+       de los acentos (cifras, grafica, botones), no el fondo ni las tarjetas. */
+    --glass-accent-bg: linear-gradient(135deg, rgba(130, 200, 165, 0.09) 0%, rgba(255, 255, 255, 0.03) 55%, rgba(255, 255, 255, 0.05) 100%);
+    --glass-accent-border: rgba(170, 225, 200, 0.20);
+    --glass-nav-bg: rgba(14, 24, 19, 0.62);
 
     /* Sobre vidrio el gris #888 original NO se lee (contraste medido 2.3 a 3.9;
        el minimo recomendado es 4.5). Se aclaran los grises solo en este tema. */
@@ -34,7 +34,7 @@
 
 /* ----- Fondo: degradado verde + manchas de luz fijas (no se mueven al hacer scroll) ----- */
 html {
-    background-color: #040906;
+    background-color: #040706;
 }
 
 body {
@@ -50,11 +50,10 @@ body::before {
     /* Mas luz que antes (como el fondo luminoso de la referencia) pero siempre
        en la gama verde: asi el vidrio de las tarjetas tiene algo que "dejar pasar". */
     background:
-        radial-gradient(75% 42% at 90% 2%, rgba(202, 253, 10, 0.34) 0%, rgba(202, 253, 10, 0) 70%),
-        radial-gradient(65% 40% at 0% 34%, rgba(52, 211, 153, 0.28) 0%, rgba(52, 211, 153, 0) 70%),
-        radial-gradient(80% 46% at 100% 76%, rgba(20, 184, 166, 0.26) 0%, rgba(20, 184, 166, 0) 70%),
-        radial-gradient(60% 30% at 30% 100%, rgba(202, 253, 10, 0.12) 0%, rgba(202, 253, 10, 0) 70%),
-        linear-gradient(180deg, #15402B 0%, #0B261A 42%, #05120C 100%);
+        radial-gradient(70% 36% at 90% 2%, rgba(202, 253, 10, 0.10) 0%, rgba(202, 253, 10, 0) 70%),
+        radial-gradient(62% 38% at 0% 36%, rgba(70, 150, 115, 0.13) 0%, rgba(70, 150, 115, 0) 70%),
+        radial-gradient(78% 44% at 100% 78%, rgba(50, 130, 110, 0.11) 0%, rgba(50, 130, 110, 0) 70%),
+        linear-gradient(180deg, #0B1612 0%, #070E0B 45%, #040706 100%);
 }
 
 .app-container {
@@ -63,7 +62,7 @@ body::before {
 
 /* ----- Encabezado: translucido con desenfoque ----- */
 .app-header {
-    background: rgba(6, 18, 12, 0.64);
+    background: rgba(7, 12, 10, 0.66);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -178,34 +177,34 @@ body::before {
    El desenfoque va en el fondo oscuro (overlay); la ventana solo es translucida
    (un desenfoque anidado dentro de otro no se ve). */
 .modal-overlay {
-    background: rgba(2, 10, 6, 0.58);
+    background: rgba(2, 5, 4, 0.60);
     -webkit-backdrop-filter: blur(7px);
     backdrop-filter: blur(7px);
 }
 
 .modal {
-    background: rgba(10, 26, 18, 0.84);
+    background: rgba(11, 18, 15, 0.86);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-highlight), 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
 .modal-header {
-    background: rgba(10, 26, 18, 0.90);
+    background: rgba(11, 18, 15, 0.92);
 }
 
 .sidebar-drawer {
-    background: rgba(8, 22, 15, 0.90);
+    background: rgba(8, 14, 11, 0.92);
     border-right: 1px solid var(--glass-border);
 }
 
 .toast {
-    background: rgba(12, 30, 21, 0.92);
+    background: rgba(13, 20, 17, 0.94);
     border: 1px solid var(--glass-border);
 }
 
 /* Menu del selector de periodo */
 .dash-period-menu {
-    background: rgba(12, 30, 21, 0.82);
+    background: rgba(13, 20, 17, 0.86);
     border: 1px solid var(--glass-border);
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
@@ -231,11 +230,11 @@ body::before {
 /* Navegadores sin desenfoque: fondos mas opacos para que el texto siga legible */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     :root {
-        --glass-bg: rgba(18, 32, 25, 0.88);
-        --glass-nav-bg: rgba(12, 26, 19, 0.95);
+        --glass-bg: rgba(20, 28, 24, 0.90);
+        --glass-nav-bg: rgba(14, 22, 18, 0.96);
     }
 
     .app-header {
-        background: rgba(6, 18, 12, 0.95);
+        background: rgba(7, 12, 10, 0.96);
     }
 }
