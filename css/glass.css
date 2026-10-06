@@ -10,14 +10,26 @@
    desenfocan lo que hay detras, con borde fino claro y brillo arriba. */
 
 :root {
-    --glass-bg: rgba(255, 255, 255, 0.055);
-    --glass-border: rgba(255, 255, 255, 0.12);
-    --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-    --glass-blur: blur(18px) saturate(140%);
-    --glass-accent-bg: linear-gradient(135deg, rgba(202, 253, 10, 0.11) 0%, rgba(202, 253, 10, 0.03) 50%, rgba(255, 255, 255, 0.05) 100%);
-    --glass-accent-border: rgba(202, 253, 10, 0.26);
-    --glass-nav-bg: rgba(10, 26, 18, 0.62);
+    --glass-bg: rgba(255, 255, 255, 0.075);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.30);
+    --glass-blur: blur(20px) saturate(150%);
+    /* La tarjeta principal lleva un tinte ESMERALDA (el lima sobre verde oscuro
+       se ponia oliva/turbio); el lima queda para cifras, grafica y botones. */
+    --glass-accent-bg: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(16, 185, 129, 0.05) 50%, rgba(255, 255, 255, 0.06) 100%);
+    --glass-accent-border: rgba(110, 231, 183, 0.30);
+    --glass-nav-bg: rgba(12, 34, 24, 0.60);
+
+    /* Sobre vidrio el gris #888 original NO se lee (contraste medido 2.3 a 3.9;
+       el minimo recomendado es 4.5). Se aclaran los grises solo en este tema. */
+    --text-secondary: #BBC7C1;
+    --text-muted: #93A59B;
+}
+
+/* Etiqueta "Tendencia positiva": verde mas claro para leerse sobre el vidrio */
+.patrimony-trend-pill {
+    color: #7BF0B0;
 }
 
 /* ----- Fondo: degradado verde + manchas de luz fijas (no se mueven al hacer scroll) ----- */
@@ -35,11 +47,14 @@ body::before {
     inset: 0;
     z-index: -1;
     pointer-events: none;
+    /* Mas luz que antes (como el fondo luminoso de la referencia) pero siempre
+       en la gama verde: asi el vidrio de las tarjetas tiene algo que "dejar pasar". */
     background:
-        radial-gradient(70% 38% at 88% 3%, rgba(202, 253, 10, 0.22) 0%, rgba(202, 253, 10, 0) 70%),
-        radial-gradient(60% 36% at 0% 36%, rgba(34, 197, 94, 0.17) 0%, rgba(34, 197, 94, 0) 70%),
-        radial-gradient(75% 42% at 100% 80%, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0) 70%),
-        linear-gradient(180deg, #0D2718 0%, #07160F 40%, #040A07 100%);
+        radial-gradient(75% 42% at 90% 2%, rgba(202, 253, 10, 0.34) 0%, rgba(202, 253, 10, 0) 70%),
+        radial-gradient(65% 40% at 0% 34%, rgba(52, 211, 153, 0.28) 0%, rgba(52, 211, 153, 0) 70%),
+        radial-gradient(80% 46% at 100% 76%, rgba(20, 184, 166, 0.26) 0%, rgba(20, 184, 166, 0) 70%),
+        radial-gradient(60% 30% at 30% 100%, rgba(202, 253, 10, 0.12) 0%, rgba(202, 253, 10, 0) 70%),
+        linear-gradient(180deg, #15402B 0%, #0B261A 42%, #05120C 100%);
 }
 
 .app-container {
