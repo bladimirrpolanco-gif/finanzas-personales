@@ -1,0 +1,226 @@
+/* ===================================
+   Finia - Tema "vidrio" (glassmorphism en verde)
+   ===================================
+   Capa visual que va ENCIMA de los demas estilos: no cambia la estructura,
+   solo fondo, transparencias y desenfoque. Para volver al diseno anterior
+   basta con quitar el <link> de este archivo en index.html.
+
+   Idea: fondo verde muy oscuro con manchas de luz lima difuminadas (el lima
+   #CAFD0A de la app es el unico color de luz) y tarjetas translucidas que
+   desenfocan lo que hay detras, con borde fino claro y brillo arriba. */
+
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.055);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    --glass-blur: blur(18px) saturate(140%);
+    --glass-accent-bg: linear-gradient(135deg, rgba(202, 253, 10, 0.11) 0%, rgba(202, 253, 10, 0.03) 50%, rgba(255, 255, 255, 0.05) 100%);
+    --glass-accent-border: rgba(202, 253, 10, 0.26);
+    --glass-nav-bg: rgba(10, 26, 18, 0.62);
+}
+
+/* ----- Fondo: degradado verde + manchas de luz fijas (no se mueven al hacer scroll) ----- */
+html {
+    background-color: #040906;
+}
+
+body {
+    background: transparent;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(70% 38% at 88% 3%, rgba(202, 253, 10, 0.22) 0%, rgba(202, 253, 10, 0) 70%),
+        radial-gradient(60% 36% at 0% 36%, rgba(34, 197, 94, 0.17) 0%, rgba(34, 197, 94, 0) 70%),
+        radial-gradient(75% 42% at 100% 80%, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0) 70%),
+        linear-gradient(180deg, #0D2718 0%, #07160F 40%, #040A07 100%);
+}
+
+.app-container {
+    background: transparent;
+}
+
+/* ----- Encabezado: translucido con desenfoque ----- */
+.app-header {
+    background: rgba(6, 18, 12, 0.64);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.header-icon {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+/* El boton del menu (☰) es transparente a proposito: sin borde ni vidrio */
+.header-icon[style*="background: transparent"] {
+    border: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+/* ----- Tarjetas de vidrio ----- */
+.month-summary-card,
+.ai-insight-card,
+.summary-card,
+.pocket-card,
+.quick-action {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-highlight), var(--glass-shadow);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+}
+
+/* Tarjeta punteada "Nuevo" de bolsillos: casi transparente */
+.pocket-card-new {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.20);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+/* La tarjeta principal lleva un tinte lima */
+.patrimony-card {
+    background: var(--glass-accent-bg);
+    border: 1px solid var(--glass-accent-border);
+    box-shadow: var(--glass-highlight), 0 12px 40px rgba(0, 0, 0, 0.40);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+}
+
+/* Se conserva el borde lima a la izquierda de la tarjeta de Finia AI */
+.ai-insight-card {
+    border-left: 3px solid var(--accent-primary);
+}
+
+/* ----- Resto de pantallas -----
+   Piezas grandes: vidrio con desenfoque (pocas por pantalla). */
+.analysis-card,
+.analysis-balance,
+.chart-container,
+.accounts-summary,
+.period-item {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-highlight), var(--glass-shadow);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+}
+
+/* Elementos que se repiten en listas largas (transacciones, cuentas, dias del
+   calendario...): solo transparencia, SIN desenfoque, para no hacer lenta la app. */
+.transaction-item,
+.account-item,
+.savings-pocket,
+.category-item,
+.pocket-item,
+.profile-menu-item,
+.notif-item,
+.day-tx-item,
+.calendar-day:not(.empty),
+.tx-filters-panel,
+.chat-bubble,
+.assistant-suggestion,
+.chip,
+.filter-btn {
+    background: rgba(255, 255, 255, 0.055);
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-highlight);
+}
+
+/* Los avisos de "activar notificaciones" conservan su borde lima a la izquierda */
+.push-prompt,
+.notif-push-card {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-highlight);
+}
+
+.push-prompt,
+.notif-push-card {
+    border-left: 3px solid var(--accent-primary);
+}
+
+/* Campos de texto y botones secundarios */
+.form-input,
+.assistant-input,
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--glass-border);
+}
+
+/* ----- Ventanas emergentes y menu lateral -----
+   El desenfoque va en el fondo oscuro (overlay); la ventana solo es translucida
+   (un desenfoque anidado dentro de otro no se ve). */
+.modal-overlay {
+    background: rgba(2, 10, 6, 0.58);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+}
+
+.modal {
+    background: rgba(10, 26, 18, 0.84);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-highlight), 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.modal-header {
+    background: rgba(10, 26, 18, 0.90);
+}
+
+.sidebar-drawer {
+    background: rgba(8, 22, 15, 0.90);
+    border-right: 1px solid var(--glass-border);
+}
+
+.toast {
+    background: rgba(12, 30, 21, 0.92);
+    border: 1px solid var(--glass-border);
+}
+
+/* Menu del selector de periodo */
+.dash-period-menu {
+    background: rgba(12, 30, 21, 0.82);
+    border: 1px solid var(--glass-border);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+}
+
+/* ----- Barra inferior flotante de vidrio ----- */
+.bottom-nav {
+    width: calc(100% - 24px);
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--glass-nav-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    box-shadow: var(--glass-highlight), 0 12px 40px rgba(0, 0, 0, 0.50);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(22px) saturate(150%);
+}
+
+.app-content {
+    padding-bottom: 124px; /* la barra ahora flota sobre el contenido */
+}
+
+/* Navegadores sin desenfoque: fondos mas opacos para que el texto siga legible */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root {
+        --glass-bg: rgba(18, 32, 25, 0.88);
+        --glass-nav-bg: rgba(12, 26, 19, 0.95);
+    }
+
+    .app-header {
+        background: rgba(6, 18, 12, 0.95);
+    }
+}
