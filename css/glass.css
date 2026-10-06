@@ -95,6 +95,45 @@ body::before {
     backdrop-filter: var(--glass-blur);
 }
 
+/* Perfil: el encabezado era un bloque SOLIDO de lima (lo que mas sobresalia).
+   Ahora es vidrio y el lima queda solo en el avatar, la insignia y el lapiz. */
+.profile-header {
+    background: var(--glass-accent-bg);
+    border: 1px solid var(--glass-accent-border);
+    box-shadow: var(--glass-highlight), var(--glass-shadow);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+}
+
+.profile-avatar {
+    background: var(--gradient-accent);
+    color: var(--bg-primary);
+    box-shadow: 0 0 0 5px rgba(202, 253, 10, 0.14);
+}
+
+.profile-name {
+    color: var(--text-primary);
+}
+
+.profile-email {
+    color: var(--text-secondary);
+    opacity: 1;
+}
+
+.profile-badge {
+    background: rgba(202, 253, 10, 0.12);
+    border: 1px solid rgba(202, 253, 10, 0.32);
+}
+
+.profile-edit {
+    color: var(--accent-primary);
+    opacity: 0.9;
+}
+
+.profile-menu-icon {
+    background: rgba(255, 255, 255, 0.07);
+}
+
 /* Tarjeta punteada "Nuevo" de bolsillos: casi transparente */
 .pocket-card-new {
     background: rgba(255, 255, 255, 0.03);
