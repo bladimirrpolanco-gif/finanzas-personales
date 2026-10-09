@@ -11,7 +11,7 @@
 
 const FinanzSound = (() => {
     const STORAGE_KEY = 'finia-sounds';
-    const MASTER_VOLUME = 0.5; // suave a proposito
+    const MASTER_VOLUME = 0.85; // suave pero claro en el parlante del celular
     let ctx = null;
     let master = null;
 
@@ -44,12 +44,53 @@ const FinanzSound = (() => {
         return ctx;
     }
 
+    // 1 segundo de silencio como WAV (data URI), para el truco del interruptor de silencio de iOS
+    function silentWavUri() {
+        const sampleRate = 8000, samples = 8000;
+        const buf = new ArrayBuffer(44 + samples);
+        const v = new DataView(buf);
+        const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+        str(0, 'RIFF'); v.setUint32(4, 36 + samples, true); str(8, 'WAVE'); str(12, 'fmt ');
+        v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+        v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate, true);
+        v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, samples, true);
+        new Uint8Array(buf, 44).fill(128); // 128 = silencio en WAV de 8 bits
+        let bin = '';
+        new Uint8Array(buf).forEach(b => { bin += String.fromCharCode(b); });
+        return 'data:audio/wav;base64,' + btoa(bin);
+    }
+
+    let silentEl = null;
+
     // Se llama dentro de un toque real: crea/reactiva el audio (iOS lo suspende al minimizar la app)
     function unlock() {
-        const c = getContext();
-        if (c && c.state !== 'running') {
-            c.resume().catch(() => {});
+        // iOS 16.4+: pedir que el audio cuente como "reproduccion" para que suene aunque el
+        // celular tenga el interruptor de silencio (si no, el audio web queda mudo)
+        try {
+            if (navigator.audioSession) navigator.audioSession.type = 'playback';
+        } catch (_) { /* no soportado */ }
+
+        // iOS anteriores: un <audio> en silencio pasa el audio a modo "reproduccion"
+        if (!silentEl) {
+            try {
+                silentEl = new Audio(silentWavUri());
+                silentEl.setAttribute('playsinline', '');
+            } catch (_) { silentEl = null; }
         }
+        if (silentEl && silentEl.paused) {
+            try { silentEl.play().catch(() => {}); } catch (_) { /* ignorar */ }
+        }
+
+        const c = getContext();
+        if (!c) return;
+        if (c.state !== 'running') c.resume().catch(() => {});
+        // iOS solo da por "desbloqueado" el audio si dentro del toque se empieza a sonar algo real
+        try {
+            const src = c.createBufferSource();
+            src.buffer = c.createBuffer(1, 1, 22050);
+            src.connect(c.destination);
+            src.start(0);
+        } catch (_) { /* ignorar */ }
     }
 
     // Una nota: seno con ataque rapido y caida exponencial (suena a campanita/gota)
@@ -98,7 +139,8 @@ const FinanzSound = (() => {
     }
 
     // Desbloqueo en el primer toque (y de nuevo si el sistema suspende el audio despues)
-    ['pointerdown', 'touchend', 'keydown'].forEach(evt => {
+    // iOS solo cuenta como "toque valido para audio" touchend/click (no pointerdown/touchstart)
+    ['pointerdown', 'touchend', 'click', 'keydown'].forEach(evt => {
         document.addEventListener(evt, unlock, { capture: true, passive: true });
     });
 
