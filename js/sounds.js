@@ -143,17 +143,26 @@ const FinanzSound = (() => {
     // Campana metalica: parciales que NO son multiplos exactos (eso da el timbre de moneda/metal)
     function bell({ freq, start = 0, duration = 0.9, peak = 0.5 }) {
         [[1, 1], [2.76, 0.45], [5.4, 0.22], [8.93, 0.10]].forEach(([ratio, level], i) => {
+            if (freq * ratio > ctx.sampleRate * 0.45) return; // por encima de lo que el celular puede reproducir
             tone({ freq: freq * ratio, start, duration: duration / (1 + i * 0.6), peak: peak * level });
         });
     }
 
     const SOUNDS = {
-        // Ingreso: "money" - caja registradora ("cha") + moneda que tintinea ("ching")
+        // Ingreso: "money" - caja registradora que se abre ("cha-ching") y monedas que caen.
+        // Sin melodia a proposito: una sola campana + choques de metal sueltos.
         income() {
-            noiseBurst({ start: 0, duration: 0.06, peak: 0.45, freq: 3800 });
-            tone({ freq: 140, endFreq: 90, start: 0, duration: 0.09, peak: 0.5 });   // golpe del cajon
-            bell({ freq: 1318.5, start: 0.07, duration: 0.55, peak: 0.55 });          // Mi6
-            bell({ freq: 1975.5, start: 0.17, duration: 0.95, peak: 0.55 });          // Si6 (el "ching")
+            // "Cha": el mecanismo de la caja (clac seco + golpe grave)
+            noiseBurst({ start: 0, duration: 0.05, peak: 0.9, freq: 2500 });
+            noiseBurst({ start: 0.045, duration: 0.04, peak: 0.6, freq: 5000 });
+            tone({ freq: 160, endFreq: 70, start: 0, duration: 0.11, peak: 0.9, type: 'triangle' });
+            // "Ching": una sola campanita aguda de la caja
+            bell({ freq: 2349, start: 0.10, duration: 0.85, peak: 0.55 });
+            // Monedas cayendo: choques metalicos cortos, irregulares y cada vez mas flojos
+            [[0.30, 3136, 0.40], [0.37, 2637, 0.36], [0.43, 3951, 0.32], [0.52, 2794, 0.28],
+             [0.58, 3520, 0.24], [0.69, 3136, 0.18], [0.80, 4186, 0.13]].forEach(([t, f, p]) => {
+                bell({ freq: f, start: t, duration: 0.14, peak: p });
+            });
         },
         // Gasto: un "tic" grave y firme, una sola nota que baja
         expense() {
