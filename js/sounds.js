@@ -92,6 +92,7 @@ const FinanzSound = (() => {
         const c = getContext();
         if (!c) return;
         if (c.state !== 'running') c.resume().catch(() => {});
+        decodePending();
         // iOS solo da por "desbloqueado" el audio si dentro del toque se empieza a sonar algo real
         try {
             const src = c.createBufferSource();
@@ -171,13 +172,67 @@ const FinanzSound = (() => {
         }
     };
 
+    // ----- Sonidos reales (archivos mp3 de la carpeta sonidos/) -----
+    // Se descargan al abrir la app y se decodifican en cuanto hay audio disponible.
+    // Si algo falla (sin red, formato no soportado...) se usan los sintetizados de arriba.
+    const SAMPLE_URLS = {
+        income: 'sonidos/ingreso.mp3?v=1',
+        expense: 'sonidos/gasto.mp3?v=1'
+    };
+    const rawSamples = {};
+    const sampleBuffers = {};
+
+    function decode(arrayBuffer) {
+        return new Promise((resolve, reject) => {
+            // Safari antiguo solo acepta la forma con callbacks; los demas devuelven una promesa
+            const p = ctx.decodeAudioData(arrayBuffer, resolve, reject);
+            if (p && typeof p.catch === 'function') p.catch(reject);
+        });
+    }
+
+    function decodePending() {
+        if (!ctx) return;
+        Object.keys(rawSamples).forEach(name => {
+            const data = rawSamples[name];
+            delete rawSamples[name];
+            if (!data) return;
+            decode(data).then(buf => { sampleBuffers[name] = buf; }).catch(() => { /* queda el sintetizado */ });
+        });
+    }
+
+    function loadSamples() {
+        Object.keys(SAMPLE_URLS).forEach(name => {
+            fetch(SAMPLE_URLS[name])
+                .then(r => (r.ok ? r.arrayBuffer() : null))
+                .then(data => {
+                    if (data) { rawSamples[name] = data; decodePending(); }
+                })
+                .catch(() => { /* sin red: queda el sintetizado */ });
+        });
+    }
+
+    function playSample(name) {
+        const buffer = sampleBuffers[name];
+        if (!buffer) return false;
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(master);
+        src.start(0);
+        return true;
+    }
+
     function play(name, { force = false } = {}) {
         if (!force && !isEnabled()) return;
         const sound = SOUNDS[name];
         if (!sound) return;
         const c = getContext();
         if (!c) return;
-        const run = () => { try { sound(); } catch (_) { /* un sonido nunca debe romper la app */ } };
+        decodePending();
+        const run = () => {
+            try {
+                if (!playSample(name)) sound();
+            } catch (_) { /* un sonido nunca debe romper la app */ }
+        };
         if (c.state === 'running') {
             run();
         } else {
@@ -191,6 +246,8 @@ const FinanzSound = (() => {
     ['pointerdown', 'touchend', 'click', 'keydown'].forEach(evt => {
         document.addEventListener(evt, unlock, { capture: true, passive: true });
     });
+
+    loadSamples();
 
     return { isEnabled, setEnabled, play, unlock };
 })();
