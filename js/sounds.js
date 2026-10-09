@@ -11,7 +11,7 @@
 
 const FinanzSound = (() => {
     const STORAGE_KEY = 'finia-sounds';
-    const MASTER_VOLUME = 0.85; // suave pero claro en el parlante del celular
+    const MASTER_VOLUME = 1.0; // el limite lo pone el compresor; el volumen real lo manda el del celular
     let ctx = null;
     let master = null;
 
@@ -37,7 +37,15 @@ const FinanzSound = (() => {
             ctx = new AC();
             master = ctx.createGain();
             master.gain.value = MASTER_VOLUME;
-            master.connect(ctx.destination);
+            // Compresor: deja subir el volumen sin que se distorsione (el parlante del celular es debil)
+            const comp = ctx.createDynamicsCompressor();
+            comp.threshold.value = -14;
+            comp.knee.value = 8;
+            comp.ratio.value = 6;
+            comp.attack.value = 0.002;
+            comp.release.value = 0.15;
+            master.connect(comp);
+            comp.connect(ctx.destination);
         } catch (_) {
             ctx = null;
         }
@@ -110,16 +118,47 @@ const FinanzSound = (() => {
         osc.stop(t0 + duration + 0.05);
     }
 
+    // Golpe corto de ruido filtrado (el "cha" de la caja registradora)
+    function noiseBurst({ start = 0, duration = 0.07, peak = 0.5, freq = 3500 }) {
+        const t0 = ctx.currentTime + start;
+        const len = Math.max(1, Math.floor(ctx.sampleRate * duration));
+        const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = freq;
+        filter.Q.value = 0.8;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(peak, t0);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        src.start(t0);
+    }
+
+    // Campana metalica: parciales que NO son multiplos exactos (eso da el timbre de moneda/metal)
+    function bell({ freq, start = 0, duration = 0.9, peak = 0.5 }) {
+        [[1, 1], [2.76, 0.45], [5.4, 0.22], [8.93, 0.10]].forEach(([ratio, level], i) => {
+            tone({ freq: freq * ratio, start, duration: duration / (1 + i * 0.6), peak: peak * level });
+        });
+    }
+
     const SOUNDS = {
-        // Ingreso: dos notas que suben, como una campanita ("entro dinero")
+        // Ingreso: "money" - caja registradora ("cha") + moneda que tintinea ("ching")
         income() {
-            tone({ freq: 659.25, start: 0, duration: 0.28, peak: 0.28 });          // Mi5
-            tone({ freq: 987.77, start: 0.09, duration: 0.42, peak: 0.26 });       // Si5
-            tone({ freq: 1975.5, start: 0.09, duration: 0.30, peak: 0.05 });       // brillo
+            noiseBurst({ start: 0, duration: 0.06, peak: 0.45, freq: 3800 });
+            tone({ freq: 140, endFreq: 90, start: 0, duration: 0.09, peak: 0.5 });   // golpe del cajon
+            bell({ freq: 1318.5, start: 0.07, duration: 0.55, peak: 0.55 });          // Mi6
+            bell({ freq: 1975.5, start: 0.17, duration: 0.95, peak: 0.55 });          // Si6 (el "ching")
         },
-        // Gasto: un "tic" grave y discreto, una sola nota que baja
+        // Gasto: un "tic" grave y firme, una sola nota que baja
         expense() {
-            tone({ freq: 392, endFreq: 262, start: 0, duration: 0.18, peak: 0.30 }); // Sol4 -> Do4
+            tone({ freq: 330, endFreq: 196, start: 0, duration: 0.28, peak: 1.0, type: 'triangle' });
+            tone({ freq: 660, endFreq: 392, start: 0, duration: 0.16, peak: 0.4 });
         }
     };
 
@@ -166,7 +205,7 @@ function toggleSounds() {
         // Al encender se oyen los dos sonidos, para que sepa como suenan
         FinanzSound.unlock();
         FinanzSound.play('income', { force: true });
-        setTimeout(() => FinanzSound.play('expense', { force: true }), 650);
+        setTimeout(() => FinanzSound.play('expense', { force: true }), 1100);
     }
 }
 
