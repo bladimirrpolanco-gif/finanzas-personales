@@ -1307,6 +1307,7 @@ async function saveTransaction(e) {
         if (result) {
             closeModal('modal-add-transaction');
             showToast(editId ? '¡Movimiento actualizado!' : '¡Movimiento guardado!');
+            if (!editId) FinanzSound.play(tx.type);
             await refreshAfterTxChange();
         } else {
             throw new Error('No se pudo guardar la transacción');

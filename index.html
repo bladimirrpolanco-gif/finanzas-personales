@@ -1450,6 +1450,17 @@
                         </div>
                     </div>
 
+                    <div class="profile-menu-item" onclick="toggleSounds()">
+                        <div class="profile-menu-icon">
+                            <i class="fas fa-volume-high"></i>
+                        </div>
+                        <div class="profile-menu-text">
+                            <h4>Sonidos</h4>
+                            <p id="sound-switch-label">Activados al guardar ingresos y gastos</p>
+                        </div>
+                        <div class="switch on" id="sound-switch" role="switch" aria-checked="true" aria-label="Sonidos"></div>
+                    </div>
+
                     <div class="profile-menu-item" onclick="openRecurring()">
                         <div class="profile-menu-icon">
                             <i class="fas fa-rotate"></i>
@@ -1585,6 +1596,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Scripts Locales -->
+    <script src="js/sounds.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
     <script src="js/charts.js"></script>

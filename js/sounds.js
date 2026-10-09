@@ -1,0 +1,138 @@
+/* ===================================
+   Finia - Sonidos de la app
+   ===================================
+   Los sonidos se generan con Web Audio (sin archivos de audio): no pesan,
+   no tienen derechos de autor y el tono se ajusta aqui mismo.
+
+   Regla de los navegadores moviles (iPhone incluido): el audio solo se puede
+   iniciar dentro de un toque del usuario. Como el sonido de "guardado" suena
+   DESPUES de esperar al servidor, se "desbloquea" el audio en el primer toque
+   de cualquier parte de la app y luego ya puede sonar cuando haga falta. */
+
+const FinanzSound = (() => {
+    const STORAGE_KEY = 'finia-sounds';
+    const MASTER_VOLUME = 0.5; // suave a proposito
+    let ctx = null;
+    let master = null;
+
+    function isEnabled() {
+        try {
+            return localStorage.getItem(STORAGE_KEY) !== 'off'; // encendido de inicio
+        } catch (_) {
+            return true;
+        }
+    }
+
+    function setEnabled(on) {
+        try {
+            localStorage.setItem(STORAGE_KEY, on ? 'on' : 'off');
+        } catch (_) { /* sin almacenamiento: queda solo en esta sesion */ }
+    }
+
+    function getContext() {
+        if (ctx) return ctx;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        try {
+            ctx = new AC();
+            master = ctx.createGain();
+            master.gain.value = MASTER_VOLUME;
+            master.connect(ctx.destination);
+        } catch (_) {
+            ctx = null;
+        }
+        return ctx;
+    }
+
+    // Se llama dentro de un toque real: crea/reactiva el audio (iOS lo suspende al minimizar la app)
+    function unlock() {
+        const c = getContext();
+        if (c && c.state !== 'running') {
+            c.resume().catch(() => {});
+        }
+    }
+
+    // Una nota: seno con ataque rapido y caida exponencial (suena a campanita/gota)
+    function tone({ freq, endFreq, start = 0, duration = 0.3, peak = 0.3, type = 'sine' }) {
+        const t0 = ctx.currentTime + start;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t0);
+        if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, t0 + duration);
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start(t0);
+        osc.stop(t0 + duration + 0.05);
+    }
+
+    const SOUNDS = {
+        // Ingreso: dos notas que suben, como una campanita ("entro dinero")
+        income() {
+            tone({ freq: 659.25, start: 0, duration: 0.28, peak: 0.28 });          // Mi5
+            tone({ freq: 987.77, start: 0.09, duration: 0.42, peak: 0.26 });       // Si5
+            tone({ freq: 1975.5, start: 0.09, duration: 0.30, peak: 0.05 });       // brillo
+        },
+        // Gasto: un "tic" grave y discreto, una sola nota que baja
+        expense() {
+            tone({ freq: 392, endFreq: 262, start: 0, duration: 0.18, peak: 0.30 }); // Sol4 -> Do4
+        }
+    };
+
+    function play(name, { force = false } = {}) {
+        if (!force && !isEnabled()) return;
+        const sound = SOUNDS[name];
+        if (!sound) return;
+        const c = getContext();
+        if (!c) return;
+        const run = () => { try { sound(); } catch (_) { /* un sonido nunca debe romper la app */ } };
+        if (c.state === 'running') {
+            run();
+        } else {
+            // Aun suspendido (no hubo toque previo): se intenta; si el navegador no deja, simplemente no suena
+            c.resume().then(run).catch(() => {});
+        }
+    }
+
+    // Desbloqueo en el primer toque (y de nuevo si el sistema suspende el audio despues)
+    ['pointerdown', 'touchend', 'keydown'].forEach(evt => {
+        document.addEventListener(evt, unlock, { capture: true, passive: true });
+    });
+
+    return { isEnabled, setEnabled, play, unlock };
+})();
+
+// Interruptor de Perfil > Sonidos
+function syncSoundSwitch() {
+    const sw = document.getElementById('sound-switch');
+    if (!sw) return;
+    const on = FinanzSound.isEnabled();
+    sw.classList.toggle('on', on);
+    sw.setAttribute('aria-checked', on ? 'true' : 'false');
+    const label = document.getElementById('sound-switch-label');
+    if (label) label.textContent = on ? 'Activados al guardar ingresos y gastos' : 'Desactivados';
+}
+
+function toggleSounds() {
+    const next = !FinanzSound.isEnabled();
+    FinanzSound.setEnabled(next);
+    syncSoundSwitch();
+    if (next) {
+        // Al encender se oyen los dos sonidos, para que sepa como suenan
+        FinanzSound.unlock();
+        FinanzSound.play('income', { force: true });
+        setTimeout(() => FinanzSound.play('expense', { force: true }), 650);
+    }
+}
+
+window.FinanzSound = FinanzSound;
+window.toggleSounds = toggleSounds;
+window.syncSoundSwitch = syncSoundSwitch;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', syncSoundSwitch);
+} else {
+    syncSoundSwitch();
+}
