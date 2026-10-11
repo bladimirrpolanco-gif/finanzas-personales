@@ -1045,6 +1045,16 @@
                     <i class="fas fa-chevron-right ai-insight-arrow"></i>
                 </div>
 
+                <!-- Acceso al Informe -->
+                <button type="button" class="report-link-card animate-fade-in-up delay-150" onclick="navigateTo('report')">
+                    <span class="report-link-icon"><i class="fas fa-chart-column"></i></span>
+                    <span class="report-link-body">
+                        <strong>Informe</strong>
+                        <span>En qué gastas más y qué se repite</span>
+                    </span>
+                    <i class="fas fa-chevron-right report-link-arrow"></i>
+                </button>
+
                 <!-- Acciones Rápidas -->
                 <section class="quick-actions animate-fade-in-up delay-200">
                     <h2 class="quick-actions-title">Acciones rápidas</h2>
@@ -1357,9 +1367,15 @@
                         </div>
                     </div>
                 </div>
+                <div class="header-right">
+                    <button class="header-icon" onclick="exportReportPDF()" aria-label="Exportar informe en PDF" title="Exportar en PDF">
+                        <i class="fas fa-file-pdf"></i>
+                    </button>
+                </div>
             </header>
 
             <main class="app-content">
+                <div class="report-print-header" id="report-print-header"></div>
                 <div class="tabs">
                     <button class="tab report-period-tab active" data-period="thisMonth"
                         onclick="setReportPeriod('thisMonth')">Este mes</button>
@@ -1376,14 +1392,17 @@
                     <div class="report-stat">
                         <span class="report-stat-label"><i class="fas fa-arrow-down text-danger"></i> Gastado</span>
                         <strong id="report-expense">$0.00</strong>
+                        <small id="report-expense-delta">&nbsp;</small>
                     </div>
                     <div class="report-stat">
                         <span class="report-stat-label"><i class="fas fa-arrow-up text-success"></i> Ingresado</span>
                         <strong id="report-income">$0.00</strong>
+                        <small id="report-income-delta">&nbsp;</small>
                     </div>
                     <div class="report-stat">
                         <span class="report-stat-label"><i class="fas fa-scale-balanced"></i> Balance</span>
                         <strong id="report-balance">$0.00</strong>
+                        <small>&nbsp;</small>
                     </div>
                 </div>
                 <p class="report-count" id="report-count">0 movimientos</p>

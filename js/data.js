@@ -323,13 +323,25 @@ class FinanzDataService {
     // de los periodos relativos de getDateRange).
     async getTransactionsInRange(startDateISO, endDateISO, { includeInternal = false } = {}) {
         if (!this.user) return [];
-        const { data } = await this.client
-            .from('transactions')
-            .select('*')
-            .gte('date', startDateISO)
-            .lte('date', endDateISO)
-            .order('date', { ascending: true });
-        return this._withoutInternal(data || [], includeInternal);
+        // Supabase devuelve como maximo 1000 filas por consulta: se pide por
+        // paginas hasta traer todo (un ano de movimientos puede pasar de 1000).
+        // El orden por id desempata para que las paginas no se solapen.
+        const PAGE = 1000;
+        const rows = [];
+        for (let from = 0; ; from += PAGE) {
+            const { data, error } = await this.client
+                .from('transactions')
+                .select('*')
+                .gte('date', startDateISO)
+                .lte('date', endDateISO)
+                .order('date', { ascending: true })
+                .order('id', { ascending: true })
+                .range(from, from + PAGE - 1);
+            if (error || !data) break;
+            rows.push(...data);
+            if (data.length < PAGE) break;
+        }
+        return this._withoutInternal(rows, includeInternal);
     }
 
     // Por defecto se descartan los movimientos internos (transferencias y

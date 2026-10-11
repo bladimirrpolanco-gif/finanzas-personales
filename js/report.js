@@ -117,8 +117,16 @@ const FinanzReport = (() => {
 
     // Funcion pura (sin pantalla ni red): recibe los movimientos del periodo y
     // devuelve todo lo que el panel muestra.
-    function build(txs, period = 'thisMonth') {
+    function build(txs, period = 'thisMonth', prevTxs = null) {
         const real = (txs || []).filter(t => !FinanzUtils.isInternalMovement(t));
+        const hasPrev = Array.isArray(prevTxs);
+        const prevReal = hasPrev ? prevTxs.filter(t => !FinanzUtils.isInternalMovement(t)) : [];
+        const prevExpenses = prevReal.filter(t => t.type === 'expense');
+        const prevByCategory = new Map();
+        prevExpenses.forEach(t => {
+            const id = t.category || 'other';
+            prevByCategory.set(id, (prevByCategory.get(id) || 0) + toAmount(t));
+        });
         const expenses = real.filter(t => t.type === 'expense');
         const incomes = real.filter(t => t.type === 'income');
 
@@ -150,13 +158,16 @@ const FinanzReport = (() => {
         const categories = allCategories
             .map(c => {
                 const info = FinanzUtils.getCategoryInfo('expense', c.id);
+                const prevAmount = prevByCategory.get(c.id) || 0;
                 return {
                     id: c.id,
                     name: info.name,
                     icon: info.icon,
                     amount: c.amount,
                     count: c.count,
-                    percentage: expenseTotal > 0 ? (c.amount / expenseTotal) * 100 : 0
+                    percentage: expenseTotal > 0 ? (c.amount / expenseTotal) * 100 : 0,
+                    previousAmount: prevAmount,
+                    changePct: hasPrev ? pctChange(c.amount, prevAmount) : null
                 };
             })
             .slice(0, TOP);
@@ -164,9 +175,18 @@ const FinanzReport = (() => {
         const expenseGroups = groupByTitle(expenses, 'expense');
         const incomeGroups = groupByTitle(incomes, 'income');
 
+        const prevExpenseTotal = sum(prevExpenses);
+        const prevIncomeTotal = sum(prevReal.filter(t => t.type === 'income'));
+
         return {
             expenseTotal,
             incomeTotal,
+            comparison: hasPrev ? {
+                expenseTotal: prevExpenseTotal,
+                incomeTotal: prevIncomeTotal,
+                expenseChangePct: pctChange(expenseTotal, prevExpenseTotal),
+                incomeChangePct: pctChange(incomeTotal, prevIncomeTotal)
+            } : null,
             balance: incomeTotal - expenseTotal,
             count: real.length,
             expenseCount: expenses.length,
@@ -197,7 +217,44 @@ const FinanzReport = (() => {
         return { startISO: FinanzUtils.toLocalISODate(start), endISO: FinanzUtils.toLocalISODate(now) };
     }
 
-    return { build, getRange, normalizeTitle };
+    // Periodo anterior de la MISMA duracion ("justo"): si hoy es 10 de octubre,
+    // este mes (1-10 oct) se compara con 1-10 sep, no con septiembre completo
+    // (daria una bajada falsa). 30/90 dias: los N dias justo antes. Ano: lo
+    // mismo del ano pasado hasta esta misma fecha.
+    function getPreviousRange(period) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        let start, end;
+        if (period === 'thisMonth') {
+            const lastDayPrev = new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            end = new Date(today.getFullYear(), today.getMonth() - 1, Math.min(today.getDate(), lastDayPrev));
+        } else if (period === 'year') {
+            const lastDayPrev = new Date(today.getFullYear() - 1, today.getMonth() + 1, 0).getDate();
+            start = new Date(today.getFullYear() - 1, 0, 1);
+            end = new Date(today.getFullYear() - 1, today.getMonth(), Math.min(today.getDate(), lastDayPrev));
+        } else {
+            const n = period === '90days' ? 90 : 30;
+            end = new Date(today.getFullYear(), today.getMonth(), today.getDate() - n - 1);
+            start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - n);
+        }
+        return { startISO: FinanzUtils.toLocalISODate(start), endISO: FinanzUtils.toLocalISODate(end) };
+    }
+
+    // Variacion en %; null si antes no habia nada con que comparar
+    function pctChange(current, previous) {
+        return previous > 0 ? ((current - previous) / previous) * 100 : null;
+    }
+
+    function rangeLabel(range) {
+        const fmt = iso => {
+            const d = FinanzUtils.parseLocalDate(iso);
+            return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+        };
+        return `${fmt(range.startISO)} – ${fmt(range.endISO)}`;
+    }
+
+    return { build, getRange, getPreviousRange, rangeLabel, normalizeTitle };
 })();
 
 // ===== PANTALLA =====
@@ -238,6 +295,17 @@ function reportRow({ rank, icon, title, meta, value, valueClass = '', percent = 
         </div>`;
 }
 
+// Variacion contra el periodo anterior. En gastos subir es malo (rojo) y bajar
+// es bueno (verde); en ingresos al reves.
+function reportDelta(pct, { higherIsBad, isNew = false }) {
+    if (pct === null) return isNew ? '<span class="report-delta neutral">Nuevo</span>' : '';
+    if (Math.abs(pct) < 1) return '<span class="report-delta neutral">= igual</span>';
+    const up = pct > 0;
+    const good = up !== higherIsBad;
+    const text = Math.abs(pct) >= 1000 ? '+999%' : `${Math.abs(pct).toFixed(0)}%`;
+    return `<span class="report-delta ${good ? 'good' : 'bad'}"><i class="fas fa-caret-${up ? 'up' : 'down'}"></i> ${text}</span>`;
+}
+
 function reportTimes(n) {
     return n === 1 ? '1 vez' : `${n} veces`;
 }
@@ -256,8 +324,86 @@ function resetChart(canvas) {
     if (existing) existing.destroy();
 }
 
+// Configuracion de las dos graficas. Se usa en pantalla (fondo oscuro) y para el
+// PDF (fondo blanco, `print: true`): mismo diseno, solo cambian los colores.
+function donutChartConfig(report, { print = false } = {}) {
+    return {
+        type: 'doughnut',
+        data: {
+            labels: report.categoryChart.labels,
+            datasets: [{
+                data: report.categoryChart.data,
+                backgroundColor: report.categoryChart.labels.map((_, i) => REPORT_COLORS[i % REPORT_COLORS.length]),
+                borderColor: print ? '#FFFFFF' : 'rgba(8, 14, 11, 0.9)',
+                borderWidth: 3,
+                hoverOffset: print ? 0 : 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    ...REPORT_TOOLTIP,
+                    callbacks: {
+                        label: ctx => {
+                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                            return `${ctx.label}: ${FinanzUtils.formatCurrency(ctx.raw)} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    };
+}
+
+function barChartConfig(report, { print = false } = {}) {
+    const text = print ? '#444444' : '#93A59B';
+    return {
+        type: 'bar',
+        data: {
+            labels: report.timeline.labels,
+            datasets: [
+                { label: 'Ingresos', data: report.timeline.income, backgroundColor: REPORT_GREEN, borderRadius: 4, maxBarThickness: 18 },
+                { label: 'Gastos', data: report.timeline.expense, backgroundColor: REPORT_RED, borderRadius: 4, maxBarThickness: 18 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    align: 'end',
+                    labels: { color: print ? '#222222' : '#BBC7C1', boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'rectRounded' }
+                },
+                tooltip: {
+                    ...REPORT_TOOLTIP,
+                    callbacks: { label: ctx => `${ctx.dataset.label}: ${FinanzUtils.formatCurrency(ctx.raw)}` }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 7, color: text, maxRotation: 0 } },
+                y: {
+                    beginAtZero: true,
+                    position: 'right',
+                    grid: { color: print ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.06)' },
+                    ticks: { maxTicksLimit: 5, color: text, callback: v => FinanzUtils.formatCompact(v) }
+                }
+            }
+        }
+    };
+}
+
+let lastReport = null;
+
 // Dona de categorias + barras de ingresos vs gastos
 function paintReportCharts(report) {
+    lastReport = report;
     const donutBox = document.getElementById('report-donut-box');
     const donutCanvas = document.getElementById('report-category-chart');
     const barCanvas = document.getElementById('report-timeline-chart');
@@ -275,80 +421,11 @@ function paintReportCharts(report) {
 
     if (typeof Chart === 'undefined') return; // sin la libreria de graficas quedan las barras de las listas
 
-    if (donutCanvas && hasCategories) {
-        new Chart(donutCanvas, {
-            type: 'doughnut',
-            data: {
-                labels: report.categoryChart.labels,
-                datasets: [{
-                    data: report.categoryChart.data,
-                    backgroundColor: report.categoryChart.labels.map((_, i) => REPORT_COLORS[i % REPORT_COLORS.length]),
-                    borderColor: 'rgba(8, 14, 11, 0.9)',
-                    borderWidth: 3,
-                    hoverOffset: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '68%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        ...REPORT_TOOLTIP,
-                        callbacks: {
-                            label: ctx => {
-                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                                const pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
-                                return `${ctx.label}: ${FinanzUtils.formatCurrency(ctx.raw)} (${pct}%)`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    if (barCanvas && hasTimeline) {
-        new Chart(barCanvas, {
-            type: 'bar',
-            data: {
-                labels: report.timeline.labels,
-                datasets: [
-                    { label: 'Ingresos', data: report.timeline.income, backgroundColor: REPORT_GREEN, borderRadius: 4, maxBarThickness: 18 },
-                    { label: 'Gastos', data: report.timeline.expense, backgroundColor: REPORT_RED, borderRadius: 4, maxBarThickness: 18 }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        align: 'end',
-                        labels: { color: '#BBC7C1', boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'rectRounded' }
-                    },
-                    tooltip: {
-                        ...REPORT_TOOLTIP,
-                        callbacks: { label: ctx => `${ctx.dataset.label}: ${FinanzUtils.formatCurrency(ctx.raw)}` }
-                    }
-                },
-                scales: {
-                    x: { grid: { display: false }, ticks: { maxTicksLimit: 7, color: '#93A59B', maxRotation: 0 } },
-                    y: {
-                        beginAtZero: true,
-                        position: 'right',
-                        grid: { color: 'rgba(255, 255, 255, 0.06)' },
-                        ticks: { maxTicksLimit: 5, color: '#93A59B', callback: v => FinanzUtils.formatCompact(v) }
-                    }
-                }
-            }
-        });
-    }
+    if (donutCanvas && hasCategories) new Chart(donutCanvas, donutChartConfig(report));
+    if (barCanvas && hasTimeline) new Chart(barCanvas, barChartConfig(report));
 }
 
-function paintReport(report) {
+function paintReport(report, prevRange = null) {
     const setHTML = (id, html) => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = html;
@@ -367,7 +444,19 @@ function paintReport(report) {
         balanceEl.classList.toggle('negative', report.balance < 0);
         balanceEl.classList.toggle('positive', report.balance > 0);
     }
-    setText('report-count', `${report.count} ${report.count === 1 ? 'movimiento' : 'movimientos'}`);
+    const countText = `${report.count} ${report.count === 1 ? 'movimiento' : 'movimientos'}`;
+    const cmp = report.comparison;
+    const expDelta = document.getElementById('report-expense-delta');
+    const incDelta = document.getElementById('report-income-delta');
+    if (expDelta) {
+        expDelta.innerHTML = cmp ? (reportDelta(cmp.expenseChangePct, { higherIsBad: true, isNew: report.expenseTotal > 0 }) || '&nbsp;') : '&nbsp;';
+    }
+    if (incDelta) {
+        incDelta.innerHTML = cmp ? (reportDelta(cmp.incomeChangePct, { higherIsBad: false, isNew: report.incomeTotal > 0 }) || '&nbsp;') : '&nbsp;';
+    }
+    setText('report-count', cmp && prevRange
+        ? `${countText} · comparado con ${FinanzReport.rangeLabel(prevRange)}`
+        : countText);
 
     // 1. Categorias con mas gastos
     const topCat = report.categories[0];
@@ -377,7 +466,7 @@ function paintReport(report) {
             rank: i + 1,
             icon: c.icon,
             title: c.name,
-            meta: `${c.percentage.toFixed(0)}% de tus gastos · ${reportTimes(c.count)}`,
+            meta: `${c.percentage.toFixed(0)}% de tus gastos · ${reportTimes(c.count)}${report.comparison ? ' ' + reportDelta(c.changePct, { higherIsBad: true, isNew: true }) : ''}`,
             value: reportMoney(c.amount),
             percent: topCat.amount > 0 ? (c.amount / topCat.amount) * 100 : 0,
             color: REPORT_COLORS[i % REPORT_COLORS.length]
@@ -436,14 +525,21 @@ function paintReport(report) {
 async function renderReport() {
     const seq = ++reportRenderSeq;
     const range = FinanzReport.getRange(currentReportPeriod);
+    const prevRange = FinanzReport.getPreviousRange(currentReportPeriod);
     let txs = [];
+    let prevTxs = null; // null = no se pudo traer: el informe se muestra sin comparacion
     try {
-        txs = await FinanzData.getTransactionsInRange(range.startISO, range.endISO);
+        [txs, prevTxs] = await Promise.all([
+            FinanzData.getTransactionsInRange(range.startISO, range.endISO),
+            FinanzData.getTransactionsInRange(prevRange.startISO, prevRange.endISO)
+        ]);
     } catch (err) {
         console.error('Report Error:', err);
+        txs = [];
+        prevTxs = null;
     }
     if (seq !== reportRenderSeq) return; // llego una consulta mas nueva: esta ya no sirve
-    paintReport(FinanzReport.build(txs, currentReportPeriod));
+    paintReport(FinanzReport.build(txs, currentReportPeriod, prevTxs), prevTxs ? prevRange : null);
 }
 
 async function setReportPeriod(period) {
@@ -453,6 +549,83 @@ async function setReportPeriod(period) {
     });
     await renderReport();
 }
+
+// ===== EXPORTAR A PDF =====
+// Se usa el dialogo de impresion del sistema (en el celular: "Compartir/Imprimir"
+// -> guardar como PDF): sin librerias, texto nitido y las graficas incluidas.
+// La hoja de estilo de impresion (@media print en ui.css) deja solo el informe
+// sobre fondo blanco; aqui se recolorean las graficas, que estan pensadas para
+// fondo oscuro, y se rellena el encabezado con el periodo.
+const REPORT_PERIOD_NAMES = { thisMonth: 'Este mes', '30days': 'Últimos 30 días', '90days': 'Últimos 3 meses', year: 'Este año' };
+let reportPrintRestoreTimer = null;
+
+// Dibuja una grafica FUERA de pantalla con colores de papel y devuelve su imagen.
+// Asi el PDF no depende de como cada navegador imprima un <canvas> (en el celular
+// salia en blanco). Resolucion x2 para que se vea nitida.
+function reportChartImage(config, width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width * 2;
+    canvas.height = height * 2;
+    const chart = new Chart(canvas, {
+        ...config,
+        options: { ...config.options, responsive: false, animation: false, devicePixelRatio: 1 }
+    });
+    const url = canvas.toDataURL('image/png');
+    chart.destroy();
+    return url;
+}
+
+function addReportPrintImage(container, url, className) {
+    const img = document.createElement('img');
+    img.className = `report-print-img ${className}`;
+    img.alt = '';
+    img.src = url;
+    container.appendChild(img);
+}
+
+function removeReportPrintImages() {
+    document.querySelectorAll('#page-report .report-print-img').forEach(img => img.remove());
+}
+
+function restoreReportAfterPrint() {
+    clearTimeout(reportPrintRestoreTimer);
+    removeReportPrintImages();
+}
+
+function exportReportPDF() {
+    const range = FinanzReport.getRange(currentReportPeriod);
+    const header = document.getElementById('report-print-header');
+    if (header) {
+        const generated = new Date().toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' });
+        header.innerHTML = `<h2>Informe financiero · Finia</h2>
+            <p>${escapeHTML(REPORT_PERIOD_NAMES[currentReportPeriod] || '')} (${escapeHTML(FinanzReport.rangeLabel(range))}) · Generado el ${escapeHTML(generated)}</p>`;
+    }
+
+    removeReportPrintImages();
+    if (lastReport && typeof Chart !== 'undefined') {
+        try {
+            const barCanvas = document.getElementById('report-timeline-chart');
+            const donutBox = document.getElementById('report-donut-box');
+            if (barCanvas && barCanvas.parentElement.style.display !== 'none') {
+                addReportPrintImage(barCanvas.parentElement,
+                    reportChartImage(barChartConfig(lastReport, { print: true }), 512, 230), 'report-print-bar');
+            }
+            if (donutBox && donutBox.style.display !== 'none') {
+                addReportPrintImage(donutBox,
+                    reportChartImage(donutChartConfig(lastReport, { print: true }), 160, 160), 'report-print-donut');
+            }
+        } catch (err) {
+            console.error('Report print charts error:', err);
+        }
+    }
+
+    // Si el navegador no avisa al terminar de imprimir, se limpia solo tras un rato
+    reportPrintRestoreTimer = setTimeout(restoreReportAfterPrint, 120000);
+    // Un instante para que las imagenes queden en la pagina antes de abrir la impresion
+    setTimeout(() => window.print(), 150);
+}
+
+window.addEventListener('afterprint', restoreReportAfterPrint);
 
 // Refresco automatico mientras el informe esta abierto y a la vista
 function startReportAutoRefresh() {
@@ -471,3 +644,4 @@ startReportAutoRefresh();
 window.FinanzReport = FinanzReport;
 window.renderReport = renderReport;
 window.setReportPeriod = setReportPeriod;
+window.exportReportPDF = exportReportPDF;

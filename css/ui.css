@@ -2396,3 +2396,252 @@
     font-size: var(--font-size-sm);
     color: var(--text-muted);
 }
+
+/* Variacion contra el periodo anterior */
+.report-stat small {
+    font-size: 0.7rem;
+    min-height: 1.1em;
+}
+
+.report-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: var(--border-radius-full);
+    white-space: nowrap;
+}
+
+.report-delta.good { color: var(--success); background: var(--success-bg); }
+.report-delta.bad { color: #FF7B7B; background: var(--danger-bg); }
+.report-delta.neutral { color: var(--text-secondary); background: rgba(255, 255, 255, 0.08); }
+
+/* Acceso al Informe desde Inicio */
+.report-link-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.report-link-card:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.report-link-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: var(--border-radius-md);
+    background: rgba(202, 253, 10, 0.12);
+    color: var(--accent-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.report-link-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.report-link-body strong {
+    font-size: var(--font-size-base);
+}
+
+.report-link-body span {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.report-link-arrow {
+    color: var(--text-muted);
+}
+
+/* ===== INFORME: IMPRESION / PDF ===== */
+.report-print-header {
+    display: none;
+}
+
+/* Imagenes de las graficas para el PDF: solo existen al imprimir */
+.report-print-img {
+    display: none;
+}
+
+@media print {
+    @page {
+        margin: 14mm;
+    }
+
+    /* html:root (mas especifico que :root) para ganarle a glass.css, que carga despues */
+    html:root {
+        --bg-primary: #ffffff;
+        --bg-card: #ffffff;
+        --bg-input: #f3f4f6;
+        --text-primary: #111111;
+        --text-secondary: #444444;
+        --text-muted: #666666;
+        --border-color: #d9dde0;
+        --success: #0a8f4a;
+        --success-bg: #e3f6ec;
+        --danger: #c62828;
+        --danger-bg: #fdeaea;
+    }
+
+    html, body {
+        background: #ffffff !important;
+        color: #111111;
+    }
+
+    body::before {
+        display: none !important;
+    }
+
+    * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* Solo el informe */
+    .page:not(#page-report),
+    .bottom-nav,
+    #sidebar-overlay,
+    #auth-overlay,
+    .modal-overlay,
+    #toast,
+    #page-report .app-header,
+    #page-report .tabs {
+        display: none !important;
+    }
+
+    #page-report {
+        display: block !important;
+    }
+
+    /* La pantalla de celular es angosta y con bordes: en papel, una columna centrada */
+    .app-container {
+        max-width: none !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        display: block !important;
+    }
+
+    #page-report .app-content {
+        max-width: 560px !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+
+    /* Las graficas van como imagen (ver exportReportPDF): el canvas no se imprime */
+    #page-report canvas {
+        display: none !important;
+    }
+
+    #page-report .report-print-img {
+        display: block !important;
+    }
+
+    #page-report .report-print-bar {
+        width: 100%;
+        height: auto;
+    }
+
+    #page-report .report-card .chart-wrapper {
+        height: auto;
+    }
+
+    #page-report .report-print-donut {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 160px;
+        height: 160px;
+        transform: translateX(-50%);
+    }
+
+    /* Un poco mas compacto para que el informe quepa en 3 hojas */
+    #page-report .report-donut {
+        height: 160px;
+        margin-bottom: 8px;
+    }
+
+    #page-report .report-card {
+        padding: 16px !important;
+        margin-bottom: 10px;
+    }
+
+    #page-report .report-card .chart-title {
+        margin-bottom: 6px;
+    }
+
+    #page-report .report-row {
+        padding: 5px 0;
+    }
+
+    #page-report .report-bar {
+        margin-top: 4px;
+    }
+
+    .report-print-header {
+        display: block;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #CAFD0A;
+    }
+
+    .report-print-header h2 {
+        font-size: 18pt;
+        margin: 0 0 2px;
+    }
+
+    .report-print-header p {
+        margin: 0;
+        font-size: 10pt;
+        color: #444;
+    }
+
+    #page-report .report-stat,
+    #page-report .report-card {
+        background: #ffffff !important;
+        border: 1px solid #d9dde0 !important;
+    }
+
+    #page-report .report-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    #page-report .report-bar {
+        background: #e5e7eb;
+    }
+
+    #page-report .report-rank {
+        background: #eef0f2;
+        color: #444;
+    }
+
+    #page-report .report-delta.bad { color: #c62828; }
+    #page-report .report-delta.neutral { color: #555; background: #eef0f2; }
+}
