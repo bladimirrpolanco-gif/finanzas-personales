@@ -162,7 +162,8 @@ body::before {
 .analysis-balance,
 .chart-container,
 .accounts-summary,
-.period-item {
+.period-item,
+.report-stat {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-highlight), var(--glass-shadow);

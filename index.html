@@ -1341,6 +1341,93 @@
             </main>
         </div>
 
+        <!-- ===== PÁGINA: INFORME ===== -->
+        <div id="page-report" class="page">
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="header-icon" onclick="toggleSidebar()"
+                        style="background: transparent; margin-left: -10px;">
+                        <i class="fas fa-bars" style="font-size: 1.2rem;"></i>
+                    </button>
+                    <div class="header-title">
+                        <h1>Informe</h1>
+                        <div class="analysis-date">
+                            <i class="fas fa-circle report-live-dot"></i>
+                            <span id="report-updated">En vivo</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="app-content">
+                <div class="tabs">
+                    <button class="tab report-period-tab active" data-period="thisMonth"
+                        onclick="setReportPeriod('thisMonth')">Este mes</button>
+                    <button class="tab report-period-tab" data-period="30days"
+                        onclick="setReportPeriod('30days')">30 días</button>
+                    <button class="tab report-period-tab" data-period="90days"
+                        onclick="setReportPeriod('90days')">3 meses</button>
+                    <button class="tab report-period-tab" data-period="year"
+                        onclick="setReportPeriod('year')">Este año</button>
+                </div>
+
+                <!-- Resumen -->
+                <div class="report-summary">
+                    <div class="report-stat">
+                        <span class="report-stat-label"><i class="fas fa-arrow-down text-danger"></i> Gastado</span>
+                        <strong id="report-expense">$0.00</strong>
+                    </div>
+                    <div class="report-stat">
+                        <span class="report-stat-label"><i class="fas fa-arrow-up text-success"></i> Ingresado</span>
+                        <strong id="report-income">$0.00</strong>
+                    </div>
+                    <div class="report-stat">
+                        <span class="report-stat-label"><i class="fas fa-scale-balanced"></i> Balance</span>
+                        <strong id="report-balance">$0.00</strong>
+                    </div>
+                </div>
+                <p class="report-count" id="report-count">0 movimientos</p>
+
+                <!-- Ingresos vs gastos en el tiempo -->
+                <div class="chart-container report-card">
+                    <h3 class="chart-title">Ingresos vs. gastos</h3>
+                    <div class="chart-wrapper"><canvas id="report-timeline-chart"></canvas></div>
+                    <div class="report-empty" id="report-timeline-empty" style="display: none;">Aún no hay movimientos en este período.</div>
+                </div>
+
+                <!-- Categorias con mas gastos -->
+                <div class="chart-container report-card">
+                    <h3 class="chart-title">Categorías con más gastos</h3>
+                    <div class="report-donut" id="report-donut-box">
+                        <div class="report-donut-chart"><canvas id="report-category-chart"></canvas></div>
+                        <div class="report-donut-center">
+                            <span>Total gastado</span>
+                            <strong id="report-donut-total">$0.00</strong>
+                        </div>
+                    </div>
+                    <div id="report-categories"></div>
+                </div>
+
+                <!-- Gastos que mas se repiten -->
+                <div class="chart-container report-card">
+                    <h3 class="chart-title">Gastos que más se repiten</h3>
+                    <div id="report-frequent-expenses"></div>
+                </div>
+
+                <!-- Ingresos que mas se repiten -->
+                <div class="chart-container report-card">
+                    <h3 class="chart-title">Ingresos que más se repiten</h3>
+                    <div id="report-frequent-incomes"></div>
+                </div>
+
+                <!-- En que se va mas dinero -->
+                <div class="chart-container report-card">
+                    <h3 class="chart-title">¿En qué gastas más dinero?</h3>
+                    <div id="report-top-spending"></div>
+                </div>
+            </main>
+        </div>
+
         <!-- ===== PÁGINA: PERFIL ===== -->
         <div id="page-profile" class="page">
             <header class="app-header">
@@ -1555,6 +1642,10 @@
                     <i class="fas fa-chart-pie"></i>
                     <span>Análisis</span>
                 </div>
+                <div class="sidebar-nav-item" onclick="navigateTo('report'); closeSidebar()">
+                    <i class="fas fa-chart-column"></i>
+                    <span>Informe</span>
+                </div>
                 <div class="sidebar-nav-item" onclick="navigateTo('profile'); closeSidebar()">
                     <i class="fas fa-user"></i>
                     <span>Mi Perfil</span>
@@ -1600,6 +1691,7 @@
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
     <script src="js/charts.js"></script>
+    <script src="js/report.js"></script>
     <script src="js/app.js"></script>
 
     <!-- Limpieza de Service Worker: ver script al inicio de <head> -->

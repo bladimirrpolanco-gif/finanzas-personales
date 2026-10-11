@@ -283,6 +283,7 @@ async function navigateTo(page) {
         case 'dashboard': await renderDashboard(); break;
         case 'transactions': await renderTransactions(); break;
         case 'analysis': await renderAnalysis(); break;
+        case 'report': await renderReport(); break;
         case 'profile': await renderProfile(); break;
     }
 }
