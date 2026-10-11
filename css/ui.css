@@ -2689,8 +2689,8 @@
 
 /* ===== ENCABEZADO EN PANTALLAS ANGOSTAS (iPhone) =====
    Logo + 3 botones + margenes le dejaban ~120 px al titulo y el saludo salia
-   cortado ("Buenos dia..."). En Inicio se quita el logo del encabezado (ya esta
-   en el menu y en la pantalla de entrada) y se compactan los botones. */
+   cortado ("Buenos dia..."). Se compactan margenes y botones, se quito el circulo
+   de iniciales (decorativo) y, si el saludo aun asi no cabe, baja a 2 lineas. */
 @media (max-width: 430px) {
     .app-header {
         padding-left: 12px;
@@ -2705,10 +2705,6 @@
     .header-icon {
         width: 38px;
         height: 38px;
-    }
-
-    #page-dashboard .header-logo {
-        display: none;
     }
 
     .header-title h1 {
