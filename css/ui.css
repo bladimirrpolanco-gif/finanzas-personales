@@ -2142,13 +2142,19 @@
 
 /* La parte de antes de la @ cede casi todo el espacio (flex-shrink alto) pero
    siempre deja visibles unos 6 caracteres; el dominio solo se recorta si ni
-   asi cabe. */
+   asi cabe. El minimo de 6 caracteres SOLO aplica a nombres largos (clase
+   .email-local-long): en uno corto como "xavier" el minimo (6 veces el ancho del
+   cero, mas ancho que las letras) dejaba un hueco entre el nombre y la @. */
 .email-local {
     flex: 0 10 auto;
-    min-width: 6ch;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.email-local-long {
+    min-width: 6ch;
 }
 
 .email-domain {
@@ -2679,4 +2685,45 @@
     color: #FFD27A;
     font: inherit;
     cursor: pointer;
+}
+
+/* ===== ENCABEZADO EN PANTALLAS ANGOSTAS (iPhone) =====
+   Logo + 3 botones + margenes le dejaban ~120 px al titulo y el saludo salia
+   cortado ("Buenos dia..."). En Inicio se quita el logo del encabezado (ya esta
+   en el menu y en la pantalla de entrada) y se compactan los botones. */
+@media (max-width: 430px) {
+    .app-header {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .header-left,
+    .header-right {
+        gap: 8px;
+    }
+
+    .header-icon,
+    .header-avatar {
+        width: 38px;
+        height: 38px;
+    }
+
+    #page-dashboard .header-logo {
+        display: none;
+    }
+
+    .header-title h1 {
+        font-size: 0.95rem;
+    }
+
+    /* El saludo cambia con la hora y el nombre ("Buenas noches, Alejandra"):
+       si no cabe en una linea baja a una segunda en vez de cortarse con "..." */
+    #dash-greeting {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        line-height: 1.2;
+        overflow: hidden;
+    }
 }

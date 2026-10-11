@@ -2571,8 +2571,10 @@ function setEmailText(el, email) {
         return;
     }
     const local = document.createElement('span');
-    local.className = 'email-local';
-    local.textContent = email.slice(0, at);
+    const localText = email.slice(0, at);
+    // El minimo de 6 caracteres visibles solo tiene sentido si el nombre es mas largo que eso
+    local.className = localText.length > 6 ? 'email-local email-local-long' : 'email-local';
+    local.textContent = localText;
     const domain = document.createElement('span');
     domain.className = 'email-domain';
     domain.textContent = email.slice(at);
