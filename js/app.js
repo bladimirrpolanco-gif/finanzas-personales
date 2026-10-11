@@ -2593,10 +2593,6 @@ function updateUserProfileUI() {
     if (sbName) sbName.textContent = userName;
     setEmailText(sbEmail, userEmail);
 
-    // 2. Dashboard Header Initials
-    const headerInitials = document.getElementById('user-initials');
-    if (headerInitials) headerInitials.textContent = initials;
-
     // 2b. Saludo del dashboard segun la hora del dia
     const dashGreeting = document.getElementById('dash-greeting');
     if (dashGreeting) {

@@ -281,18 +281,6 @@ img {
     justify-content: center;
 }
 
-.header-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--border-radius-full);
-    background: linear-gradient(135deg, #FF6B6B, #FFE66D);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: var(--font-size-sm);
-}
-
 /* ===== NAVEGACIÓN INFERIOR ===== */
 .bottom-nav {
     position: fixed;
