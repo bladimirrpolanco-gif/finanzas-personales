@@ -64,6 +64,31 @@ class FinanzDataService {
         } catch (e) { /* ignorar */ }
     }
 
+    // ===== OPERACIONES "DE TODO O NADA" =====
+    // Guardar un movimiento + ajustar el saldo (y transferir, depositar a un
+    // bolsillo...) son varios pasos. Hechos desde el celular, un corte de internet
+    // a la mitad deja la plata en el aire (sale de una cuenta y no llega a la
+    // otra). Por eso viven en funciones de la base (supabase/atomic_operations.sql)
+    // que hacen todos los pasos juntos o ninguno.
+    // Si esas funciones aun no se han creado en Supabase, se usa el metodo de antes
+    // (_xxxLegacy): asi la app funciona igual y el orden de publicar no importa.
+    _isMissingRpc(error) {
+        return !!error && (error.code === 'PGRST202' || error.code === '42883'
+            || /could not find the function|schema cache/i.test(error.message || ''));
+    }
+
+    async _rpc(name, args) {
+        this._missingRpc = this._missingRpc || new Set();
+        if (this._missingRpc.has(name)) return { missing: true };
+        const { data, error } = await this.client.rpc(name, args);
+        if (error && this._isMissingRpc(error)) {
+            this._missingRpc.add(name); // no se vuelve a intentar en esta sesion
+            console.warn(`Funcion ${name} no existe en Supabase: se usa el metodo anterior.`);
+            return { missing: true };
+        }
+        return { data, error };
+    }
+
     // ===== PROFILE & SETTINGS =====
     async getSettings() {
         if (!this.user) return { monthlyBudget: 0, dailyGoal: 0, currency: 'DOP' };
@@ -132,6 +157,26 @@ class FinanzDataService {
     async transferBetweenAccounts(fromId, toId, amount, note) {
         if (!this.user) return false;
 
+        const r = await this._rpc('finia_transfer', {
+            p_from: fromId,
+            p_to: toId,
+            p_amount: amount,
+            p_note: note || '',
+            p_date: FinanzUtils.toLocalISODate(new Date())
+        });
+        if (!r.missing) {
+            if (r.error) {
+                console.error('transfer Error:', r.error);
+                throw new Error(r.error.message);
+            }
+            return true;
+        }
+        return this._transferLegacy(fromId, toId, amount, note);
+    }
+
+    async _transferLegacy(fromId, toId, amount, note) {
+        if (!this.user) return false;
+
         // 1. Validar existencia y saldo en origen
         const { data: fromAcc } = await this.client.from('accounts').select('balance').eq('id', fromId).single();
         const { data: toAcc } = await this.client.from('accounts').select('balance').eq('id', toId).single();
@@ -198,6 +243,25 @@ class FinanzDataService {
     }
 
     async depositToPocket(pocketId, amount, fromAccountId = null) {
+        if (!this.user) return false;
+
+        const r = await this._rpc('finia_deposit_to_pocket', {
+            p_pocket: pocketId,
+            p_amount: amount,
+            p_from: fromAccountId || null,
+            p_date: FinanzUtils.toLocalISODate(new Date())
+        });
+        if (!r.missing) {
+            if (r.error) {
+                console.error('depositToPocket Error:', r.error);
+                throw new Error(r.error.message);
+            }
+            return true;
+        }
+        return this._depositToPocketLegacy(pocketId, amount, fromAccountId);
+    }
+
+    async _depositToPocketLegacy(pocketId, amount, fromAccountId = null) {
         if (!this.user) return false;
 
         // 1. Obtener bolsillo actual
@@ -372,6 +436,28 @@ class FinanzDataService {
     async addTransaction(tx) {
         if (!this.user) return;
 
+        const r = await this._rpc('finia_add_transaction', {
+            p_account: tx.accountId,
+            p_type: tx.type,
+            p_category: tx.category,
+            p_title: tx.title,
+            p_amount: tx.amount,
+            p_date: tx.date || FinanzUtils.toLocalISODate(new Date()),
+            p_note: tx.note ?? null
+        });
+        if (!r.missing) {
+            if (r.error) {
+                console.error('addTransaction Error:', r.error);
+                throw new Error(r.error.message);
+            }
+            return Array.isArray(r.data) ? r.data[0] : r.data;
+        }
+        return this._addTransactionLegacy(tx);
+    }
+
+    async _addTransactionLegacy(tx) {
+        if (!this.user) return;
+
         const { data: newTx, error } = await this.client
             .from('transactions')
             .insert([{
@@ -447,6 +533,29 @@ class FinanzDataService {
     async updateTransaction(id, changes) {
         if (!this.user) return null;
 
+        const r = await this._rpc('finia_update_transaction', {
+            p_id: id,
+            p_account: changes.accountId,
+            p_type: changes.type,
+            p_category: changes.category,
+            p_title: changes.title,
+            p_amount: changes.amount,
+            p_date: changes.date || null,
+            p_note: changes.note ?? null
+        });
+        if (!r.missing) {
+            if (r.error) {
+                console.error('updateTransaction Error:', r.error);
+                throw new Error(r.error.message);
+            }
+            return Array.isArray(r.data) ? r.data[0] : r.data;
+        }
+        return this._updateTransactionLegacy(id, changes);
+    }
+
+    async _updateTransactionLegacy(id, changes) {
+        if (!this.user) return null;
+
         const old = await this.getTransactionById(id);
         if (!old) throw new Error('No se encontró el movimiento');
         if (FinanzUtils.isInternalMovement(old)) {
@@ -488,6 +597,20 @@ class FinanzDataService {
     }
 
     async deleteTransaction(id) {
+        if (!this.user) return false;
+
+        const r = await this._rpc('finia_delete_transaction', { p_id: id });
+        if (!r.missing) {
+            if (r.error) {
+                console.error('deleteTransaction Error:', r.error);
+                return false;
+            }
+            return true;
+        }
+        return this._deleteTransactionLegacy(id);
+    }
+
+    async _deleteTransactionLegacy(id) {
         if (!this.user) return false;
 
         try {
