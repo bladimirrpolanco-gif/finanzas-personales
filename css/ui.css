@@ -2645,3 +2645,38 @@
     #page-report .report-delta.bad { color: #c62828; }
     #page-report .report-delta.neutral { color: #555; background: #eef0f2; }
 }
+
+/* ===== AVISOS DE LA RED DE SEGURIDAD (sin conexion, recurso que no cargo) ===== */
+.safety-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 14px 8px;
+    background: #3a2a05;
+    border-bottom: 1px solid rgba(255, 210, 122, 0.35);
+    color: #FFD27A;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.safety-banner.visible {
+    display: flex;
+}
+
+.safety-banner button {
+    flex-shrink: 0;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid #FFD27A;
+    background: transparent;
+    color: #FFD27A;
+    font: inherit;
+    cursor: pointer;
+}

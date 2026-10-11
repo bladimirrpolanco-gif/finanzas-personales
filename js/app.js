@@ -279,12 +279,17 @@ async function navigateTo(page) {
     }
 
     // Refresh data for the specific page
-    switch (page) {
-        case 'dashboard': await renderDashboard(); break;
-        case 'transactions': await renderTransactions(); break;
-        case 'analysis': await renderAnalysis(); break;
-        case 'report': await renderReport(); break;
-        case 'profile': await renderProfile(); break;
+    try {
+        switch (page) {
+            case 'dashboard': await renderDashboard(); break;
+            case 'transactions': await renderTransactions(); break;
+            case 'analysis': await renderAnalysis(); break;
+            case 'report': await renderReport(); break;
+            case 'profile': await renderProfile(); break;
+        }
+    } catch (err) {
+        // Si una pantalla falla al cargar, el usuario recibe un aviso y puede seguir navegando
+        FinanzSafety.handle('render:' + page, err);
     }
 }
 
@@ -1300,6 +1305,12 @@ async function saveTransaction(e) {
         note: document.getElementById('tx-note').value
     };
 
+    const amountErr = FinanzSafety.amountError(tx.amount);
+    if (amountErr) {
+        showToast(amountErr, 'error');
+        return;
+    }
+
     try {
         const editId = document.getElementById('tx-id').value;
         const result = editId
@@ -1324,6 +1335,15 @@ async function saveAccount(e) {
     const name = document.getElementById('acc-name').value;
     const balance = parseFloat(document.getElementById('acc-balance').value);
     const type = document.getElementById('acc-type').value;
+
+    if (!String(name || '').trim()) {
+        showToast('Escribe un nombre para la cuenta', 'error');
+        return;
+    }
+    if (!isFinite(balance) || Math.abs(balance) > FinanzSafety.MAX_AMOUNT) {
+        showToast('Ingresa un saldo válido', 'error');
+        return;
+    }
 
     const acc = {
         name,
@@ -1359,19 +1379,36 @@ async function saveTransfer(e) {
         return;
     }
 
-    const success = await FinanzData.transferBetweenAccounts(fromId, toId, amount, note);
-    if (success) {
-        closeModal('modal-transfer');
-        showToast('Transferencia realizada');
-        await navigateTo(currentPage);
-    } else {
-        showToast('Error en la transferencia', 'error');
+    const amountErr = FinanzSafety.amountError(amount);
+    if (amountErr) {
+        showToast(amountErr, 'error');
+        return;
+    }
+
+    try {
+        const success = await FinanzData.transferBetweenAccounts(fromId, toId, amount, note);
+        if (success) {
+            closeModal('modal-transfer');
+            showToast('Transferencia realizada');
+            await navigateTo(currentPage);
+        } else {
+            showToast('Error en la transferencia', 'error');
+        }
+    } catch (err) {
+        console.error('Save Transfer Error:', err);
+        showToast('Error en la transferencia: ' + err.message, 'error');
     }
 }
 
 async function saveBudget(e) {
     if (e) e.preventDefault();
     const amount = parseFloat(document.getElementById('budget-amount').value);
+
+    const amountErr = FinanzSafety.amountError(amount, { allowZero: true });
+    if (amountErr) {
+        showToast(amountErr, 'error');
+        return;
+    }
 
     try {
         await FinanzData.updateSettings({ monthlyBudget: amount, dailyGoal: amount / 30 });
@@ -1659,10 +1696,25 @@ async function savePocket(e) {
         color: document.getElementById('pocket-color').value,
         column: 'pockets'
     };
-    await FinanzData.addPocket(pocket);
-    closeModal('modal-add-pocket');
-    showToast('Bolsillo creado');
-    await navigateTo(currentPage);
+    if (!String(pocket.name || '').trim()) {
+        showToast('Escribe un nombre para el bolsillo', 'error');
+        return;
+    }
+    const amountErr = FinanzSafety.amountError(pocket.targetAmount);
+    if (amountErr) {
+        showToast(amountErr, 'error');
+        return;
+    }
+
+    try {
+        await FinanzData.addPocket(pocket);
+        closeModal('modal-add-pocket');
+        showToast('Bolsillo creado');
+        await navigateTo(currentPage);
+    } catch (err) {
+        console.error('Save Pocket Error:', err);
+        showToast('Error al crear el bolsillo: ' + err.message, 'error');
+    }
 }
 
 // ===== UTILS UI =====
@@ -1677,7 +1729,7 @@ function closeModal(id) {
 function showToast(msg) {
     const toast = document.getElementById('toast');
     if (!toast) return;
-    toast.querySelector('.toast-message').textContent = msg;
+    toast.querySelector('.toast-message').textContent = window.FinanzSafety ? FinanzSafety.friendly(msg) : msg;
     toast.classList.add('active');
     setTimeout(() => toast.classList.remove('active'), 3000);
 }
@@ -2617,8 +2669,9 @@ async function savePocketDeposit(e) {
     const amount = parseFloat(document.getElementById('deposit-amount').value);
     const fromAccountId = document.getElementById('deposit-from-account').value;
 
-    if (!amount || amount <= 0) {
-        showToast('Ingresa un monto válido', 'error');
+    const amountErr = FinanzSafety.amountError(amount);
+    if (amountErr) {
+        showToast(amountErr, 'error');
         return;
     }
 
@@ -2699,6 +2752,13 @@ window.onRecFrequencyChange = onRecFrequencyChange;
 window.toggleRecurring = toggleRecurring;
 window.deleteRecurringItem = deleteRecurringItem;
 window.addTransactionForSelectedDay = addTransactionForSelectedDay;
+
+// Formularios que guardan datos: un doble toque en "Guardar" ya no los envia dos veces
+// (duplicaba movimientos, y una transferencia duplicada movia el dinero dos veces).
+['saveTransaction', 'saveAccount', 'saveTransfer', 'savePocket', 'savePocketDeposit', 'saveBudget',
+    'saveCategoryBudgets', 'saveProfile', 'saveRecurring', 'submitFeedback', 'submitRating'].forEach(name => {
+    if (typeof window[name] === 'function') window[name] = FinanzSafety.once(window[name]);
+});
 window.openAddTransaction = openAddTransaction;
 window.assistantQuickAction = assistantQuickAction;
 window.sendAssistantMessage = sendAssistantMessage;

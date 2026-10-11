@@ -1630,7 +1630,10 @@
 
     <!-- Scripts -->
     <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- La red de seguridad va primero: atrapa tambien los fallos de las librerias de abajo -->
+    <script src="js/safety.js"></script>
+    <!-- Versiones fijas: una actualizacion sorpresa de la libreria no puede romper la app para todos -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
     <script src="js/supabase-client.js"></script>
 
     <!-- Chart.js -->
@@ -1703,7 +1706,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
 
     <!-- Scripts Locales -->
     <script src="js/sounds.js"></script>

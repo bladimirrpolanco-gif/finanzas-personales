@@ -53,14 +53,26 @@ class FinanzDataService {
         this.lastAccessError = null;
         return true;
     }
-// ===== PROFILE & SETTINGS =====
+// Una lectura de datos fallo (sin internet, servidor ocupado...). Antes la app
+    // devolvia una lista vacia sin decir nada y el usuario creia que habia perdido
+    // sus datos; ahora se avisa. "No hay filas" (PGRST116) no es un fallo.
+    _readFailed(error) {
+        if (!error || error.code === 'PGRST116') return;
+        console.error('Supabase read error:', error);
+        try {
+            window.dispatchEvent(new CustomEvent('finia:read-error', { detail: { message: error.message || '' } }));
+        } catch (e) { /* ignorar */ }
+    }
+
+    // ===== PROFILE & SETTINGS =====
     async getSettings() {
         if (!this.user) return { monthlyBudget: 0, dailyGoal: 0, currency: 'DOP' };
-        const { data } = await this.client
+        const { data, error } = await this.client
             .from('profiles')
             .select('*')
             .eq('id', this.user.id)
             .maybeSingle();
+        if (error) this._readFailed(error);
 
         return {
             monthlyBudget: parseFloat(data?.monthly_budget || 0),
@@ -88,10 +100,11 @@ class FinanzDataService {
     // ===== ACCOUNTS =====
     async getAccounts() {
         if (!this.user) return [];
-        const { data } = await this.client
+        const { data, error } = await this.client
             .from('accounts')
             .select('*')
             .order('name');
+        if (error) this._readFailed(error);
         return data || [];
     }
 
@@ -154,10 +167,11 @@ class FinanzDataService {
     // ===== POCKETS =====
     async getPockets() {
         if (!this.user) return [];
-        const { data } = await this.client
+        const { data, error } = await this.client
             .from('pockets')
             .select('*')
             .order('name');
+        if (error) this._readFailed(error);
         return data || [];
     }
 
@@ -314,7 +328,8 @@ class FinanzDataService {
         query = query.gte('date', FinanzUtils.toLocalISODate(range.start))
             .lte('date', FinanzUtils.toLocalISODate(range.end));
 
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) this._readFailed(error);
         return this._withoutInternal(data || [], filters.includeInternal);
     }
 
@@ -337,6 +352,7 @@ class FinanzDataService {
                 .order('date', { ascending: true })
                 .order('id', { ascending: true })
                 .range(from, from + PAGE - 1);
+            if (error) this._readFailed(error);
             if (error || !data) break;
             rows.push(...data);
             if (data.length < PAGE) break;
@@ -398,11 +414,12 @@ class FinanzDataService {
 
     async getTransactionById(id) {
         if (!this.user) return null;
-        const { data } = await this.client
+        const { data, error } = await this.client
             .from('transactions')
             .select('*')
             .eq('id', id)
             .single();
+        if (error) this._readFailed(error);
         return data || null;
     }
 
