@@ -154,6 +154,56 @@ class FinanzDataService {
         return data;
     }
 
+    // Cuantos movimientos y gastos recurrentes tiene una cuenta (para avisar al
+    // usuario que se borran con ella). Si la tabla de recurrentes no existe cuenta 0.
+    async getAccountUsage(accountId) {
+        if (!this.user) return { transactions: 0, recurring: 0 };
+        const count = async (table) => {
+            const { count: n, error } = await this.client
+                .from(table)
+                .select('id', { count: 'exact', head: true })
+                .eq('account_id', accountId);
+            if (error) {
+                if (table === 'recurring_transactions' && (error.code === '42P01' || error.code === 'PGRST205')) return 0;
+                throw new Error(error.message);
+            }
+            return n || 0;
+        };
+        const [transactions, recurring] = await Promise.all([count('transactions'), count('recurring_transactions')]);
+        return { transactions, recurring };
+    }
+
+    // Elimina una cuenta junto con sus movimientos (y sus gastos recurrentes, que se
+    // van solos). Los movimientos estan ligados a la cuenta, asi que hay que borrarlos
+    // antes. En la base se hace todo junto o nada (finia_delete_account,
+    // supabase/delete_account.sql); si esa funcion aun no existe, se hace en pasos.
+    async deleteAccount(accountId) {
+        if (!this.user) return false;
+
+        const r = await this._rpc('finia_delete_account', { p_id: accountId });
+        if (!r.missing) {
+            if (r.error) {
+                console.error('deleteAccount Error:', r.error);
+                throw new Error(r.error.message);
+            }
+            return true;
+        }
+        return this._deleteAccountLegacy(accountId);
+    }
+
+    async _deleteAccountLegacy(accountId) {
+        if (!this.user) return false;
+
+        const { error: txError } = await this.client
+            .from('transactions').delete().eq('account_id', accountId).eq('user_id', this.user.id);
+        if (txError) throw new Error(txError.message);
+
+        const { error: accError } = await this.client
+            .from('accounts').delete().eq('id', accountId).eq('user_id', this.user.id);
+        if (accError) throw new Error(accError.message);
+        return true;
+    }
+
     async transferBetweenAccounts(fromId, toId, amount, note) {
         if (!this.user) return false;
 

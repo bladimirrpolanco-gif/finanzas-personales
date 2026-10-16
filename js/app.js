@@ -1579,15 +1579,23 @@ async function renderAccountsList() {
     if (!list) return;
     const accounts = await FinanzData.getAccounts();
 
-    list.innerHTML = accounts.map(acc => `
+    if (accounts.length === 0) {
+        list.innerHTML = '<div class="empty-state">No tienes cuentas. Crea una con el botón de abajo.</div>';
+    } else {
+        list.innerHTML = accounts.map(acc => `
         <div class="account-item">
             <div class="account-info">
-                <div class="account-name">${acc.name}</div>
-                <div class="account-type">${acc.type}</div>
+                <div class="account-name">${escapeHTML(acc.name)}</div>
+                <div class="account-type">${escapeHTML(acc.type)}</div>
             </div>
             <div class="account-balance">${FinanzUtils.formatCurrency(acc.balance)}</div>
+            <button type="button" class="account-delete-btn" onclick="handleDeleteAccount('${escapeHTML(String(acc.id))}')"
+                aria-label="Eliminar la cuenta ${escapeHTML(acc.name)}" title="Eliminar cuenta">
+                <i class="fas fa-trash-alt"></i>
+            </button>
         </div>
     `).join('');
+    }
 
     const totalEl = document.getElementById('accounts-total');
     if (totalEl) {
@@ -1633,6 +1641,56 @@ async function renderPocketsList() {
     if (totalEl) {
         const total = pockets.reduce((s, p) => s + parseFloat(p.current_amount), 0);
         totalEl.textContent = FinanzUtils.formatCurrency(total);
+    }
+}
+
+// Elimina una cuenta creada por error (o que ya no se usa). Si tiene historial se
+// explica que se borra con ella y se pide una segunda confirmacion: no se puede deshacer.
+async function handleDeleteAccount(id) {
+    let acc;
+    let usage;
+    try {
+        const accounts = await FinanzData.getAccounts();
+        acc = accounts.find(a => String(a.id) === String(id));
+        if (acc) usage = await FinanzData.getAccountUsage(id);
+    } catch (err) {
+        console.error('Delete Account (lookup) Error:', err);
+        showToast('No se pudo revisar la cuenta: ' + err.message, 'error');
+        return;
+    }
+    if (!acc) {
+        showToast('No se encontró la cuenta', 'error');
+        await renderAccountsList();
+        return;
+    }
+
+    const balance = parseFloat(acc.balance) || 0;
+    const money = FinanzUtils.formatCurrency(balance);
+    const hasHistory = usage.transactions > 0 || usage.recurring > 0;
+
+    if (!hasHistory) {
+        const note = balance !== 0 ? ` Tiene un saldo de ${money} que dejará de contar en tu patrimonio.` : '';
+        if (!confirm(`¿Eliminar la cuenta «${acc.name}»?${note}`)) return;
+    } else {
+        const parts = [];
+        if (usage.transactions > 0) parts.push(`${usage.transactions} ${usage.transactions === 1 ? 'movimiento' : 'movimientos'}`);
+        if (usage.recurring > 0) parts.push(`${usage.recurring} ${usage.recurring === 1 ? 'gasto recurrente' : 'gastos recurrentes'}`);
+        const first = `La cuenta «${acc.name}» tiene ${parts.join(' y ')}`
+            + (balance !== 0 ? ` y un saldo de ${money}` : '')
+            + `.\n\nSi la eliminas, también se borra todo eso y el saldo deja de contar en tu patrimonio. NO se puede deshacer.\n\n¿Quieres continuar?`;
+        if (!confirm(first)) return;
+        if (!confirm(`ÚLTIMA CONFIRMACIÓN: se borrará para siempre la cuenta «${acc.name}» con todo su historial. ¿Eliminar?`)) return;
+    }
+
+    try {
+        await FinanzData.deleteAccount(id);
+        showToast('Cuenta eliminada');
+        await renderAccountsList();
+        await navigateTo(currentPage); // saldos, listas e informe con los datos nuevos
+    } catch (err) {
+        console.error('Delete Account Error:', err);
+        showToast('Error al eliminar la cuenta: ' + err.message, 'error');
+        await renderAccountsList();
     }
 }
 
@@ -2750,6 +2808,7 @@ window.onRecFrequencyChange = onRecFrequencyChange;
 window.toggleRecurring = toggleRecurring;
 window.deleteRecurringItem = deleteRecurringItem;
 window.addTransactionForSelectedDay = addTransactionForSelectedDay;
+window.handleDeleteAccount = FinanzSafety.once(handleDeleteAccount);
 
 // Formularios que guardan datos: un doble toque en "Guardar" ya no los envia dos veces
 // (duplicaba movimientos, y una transferencia duplicada movia el dinero dos veces).

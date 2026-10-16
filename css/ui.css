@@ -2722,3 +2722,23 @@
         overflow: hidden;
     }
 }
+
+/* Boton de eliminar cuenta (Gestion de Cuentas) */
+.account-delete-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: var(--border-radius-full);
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+}
+
+.account-delete-btn:hover,
+.account-delete-btn:focus-visible {
+    color: var(--danger);
+    background: var(--danger-bg);
+}
